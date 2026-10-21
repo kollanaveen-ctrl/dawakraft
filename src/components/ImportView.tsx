@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { demoMode } from "@/lib/config";
 import { AI_CATEGORY_BATCH, CATEGORIES } from "@/lib/constants";
 import { parseImport, type ImportRow } from "@/lib/csv";
 import * as repo from "@/lib/data/repo";
@@ -13,6 +14,7 @@ const SORT_FALLBACK = "Couldn't sort the categories. Try again.";
 const SORT_ERRORS: Record<string, string> = {
   not_configured: "AI sorting isn't set up yet (add your Claude key). You can still import; missing categories become Other.",
   not_signed_in: "Your sign-in expired. Reload the page and sign in again.",
+  demo_online: "AI sorting is switched off on the online demo until sign-in is added. You can still import; missing categories become Other.",
   rate_limited: "AI is busy right now. Wait a minute, then try again.",
 };
 const COLUMNS: [keyof ImportRow, string][] = [
@@ -84,7 +86,8 @@ export function ImportView() {
       });
       const body = (await res.json().catch(() => null)) as { ok: boolean; data?: { i: number; category: string }[]; error?: string } | null;
       if (!res.ok || !body?.ok || !body.data) {
-        setStatus({ text: SORT_ERRORS[body?.error ?? ""] ?? SORT_FALLBACK, err: true });
+        const code = demoMode && body?.error === "not_signed_in" ? "demo_online" : (body?.error ?? "");
+        setStatus({ text: SORT_ERRORS[code] ?? SORT_FALLBACK, err: true });
         return;
       }
       const found = new Map(body.data.filter((x) => (CATEGORIES as readonly string[]).includes(x.category)).map((x) => [x.i, x.category]));

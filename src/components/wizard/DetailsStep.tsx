@@ -2,6 +2,7 @@
 import { useState, type ReactNode } from "react";
 import { aiSummary, mergeAiResult } from "@/lib/ai/box-read";
 import { CATEGORIES, FORMS, HIGHLIGHT_MAX, MAX_AI_IMAGES, SCHEDULES, type FieldKey } from "@/lib/constants";
+import { demoMode } from "@/lib/config";
 import { aiImage } from "@/lib/image/encode";
 import { NEW_LAUNCH_DAYS } from "@/lib/segments";
 import type { AiReadResult, DraftFields } from "@/lib/types";
@@ -21,6 +22,7 @@ type Props = {
 
 const AI_ERRORS: Record<string, string> = {
   not_signed_in: "Your sign-in expired. Reload the page and sign in again.",
+  demo_online: "AI reading is switched off on the online demo until sign-in is added. Type the details from the carton.",
   not_configured: "AI reading isn't set up yet. Type the details from the carton.",
   rate_limited: "AI is busy right now. Wait a minute, then try again.",
   image_rejected: "One photo couldn't be used. Try a different photo.",
@@ -77,7 +79,8 @@ export function DetailsStep({ fields, low, files, confirmed, isNew, onFields, on
       });
       const body = (await res.json().catch(() => null)) as { ok: boolean; data?: AiReadResult; error?: string } | null;
       if (!res.ok || !body?.ok) {
-        setStatus({ text: AI_ERRORS[body?.error ?? ""] ?? AI_FALLBACK, err: true });
+        const code = demoMode && body?.error === "not_signed_in" ? "demo_online" : (body?.error ?? "");
+        setStatus({ text: AI_ERRORS[code] ?? AI_FALLBACK, err: true });
         return;
       }
       const merged = mergeAiResult(fields, body.data);
