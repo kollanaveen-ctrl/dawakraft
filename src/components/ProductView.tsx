@@ -72,7 +72,7 @@ export function ProductView({ id }: { id: string }) {
     return (
       <div className="empty">
         <h2>Product not found</h2>
-        <Link className="btn" href="/">
+        <Link className="btn" href="/catalog">
           Back to catalog
         </Link>
       </div>
@@ -118,7 +118,7 @@ export function ProductView({ id }: { id: string }) {
       await repo.deleteProducts([p]);
       dropProducts([p.id]);
       toast("Deleted");
-      router.replace("/");
+      router.replace("/catalog");
     } catch (e) {
       toast(repo.friendlyError(e));
       setBusy(false);
@@ -129,7 +129,7 @@ export function ProductView({ id }: { id: string }) {
 
   return (
     <section aria-labelledby="h-product">
-      <Link className="btn ghost" href="/" style={{ paddingLeft: 0 }}>
+      <Link className="btn ghost" href="/catalog" style={{ paddingLeft: 0 }}>
         ← Catalog
       </Link>
       <div className="two" style={{ marginTop: 8 }}>

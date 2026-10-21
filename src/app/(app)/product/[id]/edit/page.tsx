@@ -14,7 +14,7 @@ export default function EditProductPage() {
     return (
       <div className="empty">
         <h2>Product not found</h2>
-        <Link className="btn" href="/">
+        <Link className="btn" href="/catalog">
           Back to catalog
         </Link>
       </div>

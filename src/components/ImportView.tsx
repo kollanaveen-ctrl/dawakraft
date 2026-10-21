@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import type { CategorizeResponse } from "@/lib/ai/types";
 import { demoMode } from "@/lib/config";
 import { AI_CATEGORY_BATCH, CATEGORIES } from "@/lib/constants";
 import { parseImport, type ImportRow } from "@/lib/csv";
@@ -17,6 +18,13 @@ const SORT_ERRORS: Record<string, string> = {
   demo_online: "AI sorting is switched off on the online demo until sign-in is added. You can still import; missing categories become Other.",
   rate_limited: "AI is busy right now. Wait a minute, then try again.",
 };
+
+/** Status after sorting. Sample (mock) categories are labelled so nobody mistakes them for an AI reading. */
+function sortSummary(n: number, mock: boolean): string {
+  const filled = `Filled ${n} categor${n === 1 ? "y" : "ies"}.`;
+  return mock ? `Sample categories (demo): check them. ${filled}` : `${filled} Check them in the preview.`;
+}
+
 const COLUMNS: [keyof ImportRow, string][] = [
   ["name", "Name"],
   ["composition", "Composition"],
@@ -84,16 +92,16 @@ export function ImportView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: need }),
       });
-      const body = (await res.json().catch(() => null)) as { ok: boolean; data?: { i: number; category: string }[]; error?: string } | null;
-      if (!res.ok || !body?.ok || !body.data) {
-        const code = demoMode && body?.error === "not_signed_in" ? "demo_online" : (body?.error ?? "");
+      const body = (await res.json().catch(() => null)) as CategorizeResponse | null;
+      if (!res.ok || !body?.ok) {
+        const error = body && !body.ok ? body.error : "";
+        const code = demoMode && error === "not_signed_in" ? "demo_online" : error;
         setStatus({ text: SORT_ERRORS[code] ?? SORT_FALLBACK, err: true });
         return;
       }
       const found = new Map(body.data.filter((x) => (CATEGORIES as readonly string[]).includes(x.category)).map((x) => [x.i, x.category]));
       setRows((cur) => cur.map((r, i) => (!r.category && found.has(i) ? { ...r, category: found.get(i) } : r)));
-      const n = found.size;
-      setStatus({ text: `Filled ${n} categor${n === 1 ? "y" : "ies"}. Check them in the preview.`, err: false });
+      setStatus({ text: sortSummary(found.size, body.meta.mock), err: false });
     } catch {
       setStatus({ text: SORT_FALLBACK, err: true });
     } finally {

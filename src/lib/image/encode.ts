@@ -19,7 +19,8 @@ export async function fileToImage(file: Blob): Promise<HTMLImageElement> {
   const url = URL.createObjectURL(file);
   try {
     const img = await loadImage(url);
-    await img.decode().catch(() => undefined);
+    // No img.decode() here: the image is drawable once loaded, and decode() can hang forever
+    // in some browsers (background tabs, power saving), which froze the wizard.
     return img;
   } finally {
     URL.revokeObjectURL(url);

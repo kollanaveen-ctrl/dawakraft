@@ -5,6 +5,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseSettings } from "@/lib/config";
 
 const PUBLIC_PATHS = ["/login", "/auth/"];
+// The marketing home page and search-engine files are public; app screens need sign-in.
+const PUBLIC_EXACT = new Set(["/", "/robots.txt", "/sitemap.xml", "/opengraph-image", "/icon.svg"]);
+const APP_HOME = "/catalog";
 
 function redirectTo(request: NextRequest, pathname: string) {
   const url = request.nextUrl.clone();
@@ -16,7 +19,8 @@ function redirectTo(request: NextRequest, pathname: string) {
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const settings = supabaseSettings();
-  if (!settings) return path === "/login" ? redirectTo(request, "/") : NextResponse.next();
+  if (!settings) return path === "/login" ? redirectTo(request, APP_HOME) : NextResponse.next();
+  if (PUBLIC_EXACT.has(path)) return NextResponse.next();
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(settings.url, settings.key, {
@@ -36,7 +40,7 @@ export async function proxy(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
 
   if (!signedIn && !isPublic && !path.startsWith("/api/")) return redirectTo(request, "/login");
-  if (signedIn && path === "/login") return redirectTo(request, "/");
+  if (signedIn && path === "/login") return redirectTo(request, APP_HOME);
   return response;
 }
 

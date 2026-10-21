@@ -1,9 +1,13 @@
-// The 3D pack shot: the cleaned front, side and top photos are wrapped onto a box drawn at an
-// angle (an oblique 3D view), giving a product picture for the circular. It runs on the phone,
-// costs nothing, and takes well under a second.
-import type { FaceRotations } from "../faces";
+// The 3D pack shot: the front, side and top faces are wrapped onto a box drawn at an angle (an
+// oblique 3D view), giving a product picture for the circular. For a box, each face is first
+// straightened from its four corners, so the box takes its real proportions from the carton. Other
+// packs (bottle, tube, strip) keep the older background-removal path. It all runs on the phone.
+import { BOX_FACES, type BoxFace, type FaceCanvases, type FaceCorners, type FaceRotations } from "../faces";
+import { detectCornersOnCanvas } from "./corners";
 import { cleanPhoto } from "./cutout";
 import { fileToImage } from "./encode";
+import type { Quad } from "./perspective";
+import { loadFaceSource, straightenFace } from "./straighten";
 
 const DEPTH_ANGLE = (32 * Math.PI) / 180;
 const DEPTH_SCALE = 0.55;
@@ -64,7 +68,10 @@ function face(ctx: Ctx, pts: [Pt, Pt, Pt, Pt], img: HTMLCanvasElement | null, fi
   ctx.restore();
 }
 
-/** Draw the box. Without a side or top photo there is no depth, so the flat front is returned. */
+/**
+ * Draw the box from face pictures (ideally straightened faces, whose sizes then give the box's true
+ * proportions). Without a side or top there is no depth, so the flat front is returned.
+ */
 export function composePackShot(front: HTMLCanvasElement, side: HTMLCanvasElement | null, top: HTMLCanvasElement | null): HTMLCanvasElement {
   const g = boxGeometry(front, side, top);
   if (!g) return front;
@@ -111,12 +118,58 @@ export type PackInput = {
   removeBg: boolean;
   tol: number;
   threeD: boolean;
+  /** Bottle, tube or strip: skip corners and use background removal instead. */
+  notABox?: boolean;
+  /** Corners the user placed; faces without corners use the auto-suggestion. */
+  corners?: FaceCorners;
 };
 
-export type PackResult = { canvas: HTMLCanvasElement; ok: boolean; is3D: boolean };
+export type PackResult = {
+  canvas: HTMLCanvasElement;
+  ok: boolean;
+  is3D: boolean;
+  /** Straightened faces (box path only), kept so they can be sent to the AI. */
+  faces?: FaceCanvases;
+  /** The corners used for each face (box path only), including auto-suggested ones. */
+  corners?: FaceCorners;
+};
 
-/** Clean each face photo (rotate, remove background) and build the pack shot. */
-export async function buildPackImage(input: PackInput): Promise<PackResult> {
+/** The pack shot from straightened faces: the 3D box when asked for and possible, else the flat front. */
+export function packFromFaces(faces: FaceCanvases, threeD: boolean): { canvas: HTMLCanvasElement; is3D: boolean } | null {
+  if (!faces.front) return null;
+  if (!threeD || (!faces.side && !faces.top)) return { canvas: faces.front, is3D: false };
+  const canvas = composePackShot(faces.front, faces.side ?? null, faces.top ?? null);
+  return { canvas, is3D: canvas !== faces.front };
+}
+
+type StraightFace = { face: BoxFace; quad: Quad; source: HTMLCanvasElement; canvas: HTMLCanvasElement | null };
+
+/** Box path: straighten every face that has a photo (side panels carry composition, so always all of them). */
+async function buildBoxPack(input: PackInput, front: File): Promise<PackResult> {
+  const files: Record<BoxFace, File | null> = { front, side: input.side, top: input.top };
+  const done = await Promise.all(
+    BOX_FACES.map(async (face): Promise<StraightFace | null> => {
+      const file = files[face];
+      if (!file) return null;
+      const source = await loadFaceSource(file, input.rots[face]);
+      const quad = input.corners?.[face] ?? detectCornersOnCanvas(source).quad;
+      return { face, quad, source, canvas: straightenFace(source, quad) };
+    }),
+  );
+  const present = done.filter((f): f is StraightFace => f !== null);
+  const faces: FaceCanvases = Object.fromEntries(present.filter((f) => f.canvas).map((f) => [f.face, f.canvas]));
+  const corners: FaceCorners = Object.fromEntries(present.map((f) => [f.face, f.quad]));
+  const ok = present.every((f) => f.canvas);
+  const pack = packFromFaces(faces, input.threeD);
+  if (pack) return { ...pack, ok, faces, corners };
+  // The front corners didn't make a usable shape: show the upright photo rather than nothing.
+  const frontSource = present.find((f) => f.face === "front")?.source;
+  if (!frontSource) throw new Error("No front photo");
+  return { canvas: frontSource, ok: false, is3D: false, faces, corners };
+}
+
+/** Flat path: rotate each photo and (optionally) remove its background, then build the pack shot. */
+async function buildCutoutPack(input: PackInput): Promise<PackResult> {
   const prep = async (src: File | HTMLImageElement | null, rot: number, removeBg: boolean) => {
     if (!src) return null;
     const img = src instanceof HTMLImageElement ? src : await fileToImage(src);
@@ -132,4 +185,13 @@ export async function buildPackImage(input: PackInput): Promise<PackResult> {
   ]);
   const canvas = composePackShot(front.canvas, side?.canvas ?? null, top?.canvas ?? null);
   return { canvas, ok: front.ok && (side?.ok ?? true) && (top?.ok ?? true), is3D: canvas !== front.canvas };
+}
+
+/**
+ * Build the product picture. New photos of a box are straightened from their corners; a saved
+ * picture (editing without new photos) or a pack that is not a box goes through background removal.
+ */
+export async function buildPackImage(input: PackInput): Promise<PackResult> {
+  if (input.notABox || !(input.front instanceof File)) return buildCutoutPack(input);
+  return buildBoxPack(input, input.front);
 }

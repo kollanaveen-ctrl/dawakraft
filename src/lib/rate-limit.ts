@@ -19,10 +19,13 @@ export function allow(key: string, limit: number, windowMs: number, now = Date.n
 export type AiKind = "read" | "sort";
 
 /**
- * The real limit, shared by every server instance: counts the user's recent calls in the
- * ai_usage table and records this one. Returns false when the user is over the limit.
+ * The real limit, shared by every server instance. It records this call first and then counts,
+ * so many requests sent at the same moment can't all slip under the limit (each one sees the
+ * others' rows). Returns false when the user is over the limit.
  */
 export async function claimAiUse(supabase: SupabaseClient, kind: AiKind, limit: number, windowMs: number): Promise<boolean> {
+  const { error: insertError } = await supabase.from("ai_usage").insert({ kind });
+  if (insertError) throw insertError;
   const since = new Date(Date.now() - windowMs).toISOString();
   const { count, error } = await supabase
     .from("ai_usage")
@@ -30,8 +33,5 @@ export async function claimAiUse(supabase: SupabaseClient, kind: AiKind, limit: 
     .eq("kind", kind)
     .gte("created_at", since);
   if (error) throw error;
-  if ((count ?? 0) >= limit) return false;
-  const { error: insertError } = await supabase.from("ai_usage").insert({ kind });
-  if (insertError) throw insertError;
-  return true;
+  return (count ?? 0) <= limit;
 }

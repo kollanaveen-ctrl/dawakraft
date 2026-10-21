@@ -1,20 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import { RegisterSW } from "@/components/RegisterSW";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 import "./globals.css";
+import "../styles/corners.css";
+import "../styles/ai.css";
+import "../styles/landing.css";
 
-// The same three typefaces as the prototype. The CSS variables are also read by the circular renderer.
-const display = Archivo({ variable: "--f-display", subsets: ["latin"], weight: ["500", "700", "800"] });
-const body = Public_Sans({ variable: "--f-body", subsets: ["latin"], weight: ["400", "500", "600"] });
-const mono = IBM_Plex_Mono({ variable: "--f-mono", subsets: ["latin"], weight: ["500"] });
+// Brand typefaces. The CSS variables are also read by the circular renderer.
+const display = Bricolage_Grotesque({ variable: "--f-display", subsets: ["latin"], weight: ["500", "700", "800"] });
+const body = Instrument_Sans({ variable: "--f-body", subsets: ["latin"], weight: ["400", "500", "600"] });
+const mono = JetBrains_Mono({ variable: "--f-mono", subsets: ["latin"], weight: ["500"] });
 
 export const metadata: Metadata = {
-  title: "Dawakraft",
-  description: "Photograph a medicine box and get a branded, compliance-checked product circular to share on WhatsApp.",
-  applicationName: "Dawakraft",
-  appleWebApp: { capable: true, title: "Dawakraft", statusBarStyle: "default" },
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "default" },
   formatDetection: { telephone: false },
-  icons: { apple: "/pwa-icon/180" },
+  icons: { icon: "/icon.svg", apple: "/pwa-icon/180" },
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_IN", url: "/", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
 };
 
 export const viewport: Viewport = {
@@ -22,8 +29,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FFFFFF" },
-    { media: "(prefers-color-scheme: dark)", color: "#142023" },
+    { media: "(prefers-color-scheme: light)", color: "#F6F4EE" },
+    { media: "(prefers-color-scheme: dark)", color: "#0D1412" },
   ],
 };
 
@@ -31,6 +38,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-IN" className={`${display.variable} ${body.variable} ${mono.variable} antialiased`}>
       <body>
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
         {children}
         <RegisterSW />
       </body>

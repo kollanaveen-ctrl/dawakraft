@@ -16,6 +16,8 @@ export const CATEGORIES = [
   "Other",
 ] as const;
 
+export type Category = (typeof CATEGORIES)[number];
+
 export const FORMS = [
   "Tablet",
   "Capsule",
@@ -94,6 +96,11 @@ export const AI_FIELD_KEYS = [
 ] as const;
 
 export type AiFieldKey = (typeof AI_FIELD_KEYS)[number];
+
+/** Which face of the carton a photo shows, as sent to the AI ("other" = not labelled). */
+export const IMAGE_ROLES = ["front", "side", "top", "other"] as const;
+
+export type ImageRole = (typeof IMAGE_ROLES)[number];
 
 /** Sample product for the Company preview and the "Add an example" button. */
 export const SAMPLE = {

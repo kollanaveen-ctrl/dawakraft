@@ -1,0 +1,27 @@
+/* AI reading: evidence lines under fields and the sample-reading warning. Uses tokens from globals.css. */
+
+/* "Read from side panel: "…"" under a field: quiet, but readable and wrapping on small screens. */
+.field .ai-evidence {
+  font-weight: 400;
+  font-size: 0.76rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  border-left: 2px solid var(--line);
+  padding-left: 6px;
+}
+
+/* Composition is always flagged after a reading, so its evidence line carries the warning colour. */
+.field.low .ai-evidence {
+  border-left-color: var(--warn);
+}
+
+/* The mock (sample) reading warning must be impossible to miss. */
+.notice.ai-mock {
+  margin-bottom: 0;
+  border: 1px solid var(--warn);
+  color: var(--ink);
+  font-weight: 600;
+}
+.notice.ai-mock p {
+  margin: 0;
+}

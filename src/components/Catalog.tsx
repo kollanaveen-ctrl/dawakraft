@@ -241,7 +241,13 @@ export function Catalog() {
         </div>
       )}
 
-      {loaded && list.length > 0 ? (
+      {!loaded ? (
+        <div className="grid" aria-busy="true" aria-label="Loading your catalog">
+          {[0, 1, 2, 3].map((k) => (
+            <div key={k} className="skeleton" />
+          ))}
+        </div>
+      ) : list.length > 0 ? (
         <div className="grid">
           {list.map((p) => (
             <ProductCard key={p.id} product={p} logo={logo} />
@@ -249,6 +255,12 @@ export function Catalog() {
         </div>
       ) : (
         <div className="empty">
+          <svg className="empty-art" viewBox="0 0 64 64" aria-hidden="true">
+            <path d="M32 10 54 22 32 34 10 22Z" fill="currentColor" opacity=".25" />
+            <path d="M10 22 32 34v22L10 44Z" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+            <path d="M54 22 32 34v22l22-12Z" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+            <path d="M32 10 54 22 32 34 10 22Z" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+          </svg>
           <h2>{emptyTitle}</h2>
           {loaded && <p className="muted">{emptyText}</p>}
           {loaded && !products.length && (

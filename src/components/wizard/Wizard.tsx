@@ -6,10 +6,24 @@ import { hasBlockingIssue, runChecks } from "@/lib/compliance";
 import type { FieldKey, TemplateKey } from "@/lib/constants";
 import { EMPTY_DRAFT, draftToFields, productToDraft } from "@/lib/data/mappers";
 import * as repo from "@/lib/data/repo";
-import { NO_FACES, NO_ROTATION, assignRole, removePhoto, type FaceRole, type FaceRotations, type Faces } from "@/lib/faces";
+import {
+  NO_FACES,
+  NO_ROTATION,
+  aiRoleOf,
+  assignRole,
+  removePhoto,
+  withoutCorners,
+  type BoxFace,
+  type FaceCanvases,
+  type FaceCorners,
+  type FaceRole,
+  type FaceRotations,
+  type Faces,
+} from "@/lib/faces";
 import { DEFAULT_TOLERANCE } from "@/lib/image/cutout";
 import { loadImage, productImageBlob } from "@/lib/image/encode";
 import { buildPackImage } from "@/lib/image/packshot";
+import type { Quad } from "@/lib/image/perspective";
 import { highlightFor, highlightOnToggle, isNewLaunch, nextLaunchedAt } from "@/lib/segments";
 import type { DraftFields, Product } from "@/lib/types";
 import { primeMediaImage, useData, useMediaImage } from "../DataProvider";
@@ -42,6 +56,15 @@ export function Wizard({ product }: { product: Product | null }) {
   const [threeD, setThreeD] = useState(true);
   const [tol, setTol] = useState(DEFAULT_TOLERANCE);
   const [cut, setCut] = useState<HTMLCanvasElement | null>(null);
+  // Box corners the user placed per face (faces without an entry use the auto-suggestion), whether
+  // the pack is not a box at all, and the straightened faces. `cut` stays the final pack shot.
+  const [corners, setCorners] = useState<FaceCorners>({});
+  const [notABox, setNotABox] = useState(false);
+  // Straightened faces, kept for sending the legible side panels (composition, strength) to the AI.
+  const [faceCanvases, setFaceCanvases] = useState<FaceCanvases>({});
+  // Straightened faces as files, so the AI reads flat, sharp panels instead of tilted photos.
+  const [faceFiles, setFaceFiles] = useState<Partial<Record<BoxFace, File>>>({});
+  const [strengthOnFront, setStrengthOnFront] = useState("");
   const [fields, setFields] = useState<DraftFields>(() => (product ? productToDraft(product) : EMPTY_DRAFT));
   const [isNew, setIsNew] = useState(() => (product ? isNewLaunch(product) : true));
   const [low, setLow] = useState<Low>({});
@@ -54,26 +77,60 @@ export function Wizard({ product }: { product: Product | null }) {
   const sideFile = faces.side == null ? null : (files[faces.side] ?? null);
   const topFile = faces.top == null ? null : (files[faces.top] ?? null);
 
-  const checks = useMemo(() => runChecks({ fields, confirmed, companyName: company.name }), [fields, confirmed, company.name]);
+  const checks = useMemo(
+    () => runChecks({ fields, confirmed, companyName: company.name, strengthOnFront }),
+    [fields, confirmed, company.name, strengthOnFront],
+  );
+
+  useEffect(() => {
+    let live = true;
+    const entries = Object.entries(faceCanvases) as [BoxFace, HTMLCanvasElement][];
+    Promise.all(
+      entries.map(
+        ([face, cv]) =>
+          new Promise<[BoxFace, File] | null>((resolve) =>
+            cv.toBlob((b) => resolve(b ? [face, new File([b], `${face}.jpg`, { type: "image/jpeg" })] : null), "image/jpeg", 0.9),
+          ),
+      ),
+    ).then((pairs) => {
+      if (live) setFaceFiles(Object.fromEntries(pairs.filter((p): p is [BoxFace, File] => p !== null)));
+    });
+    return () => {
+      live = false;
+    };
+  }, [faceCanvases]);
+
+  const aiPhotos = useMemo(
+    () =>
+      files.map((file, i) => {
+        const role = aiRoleOf(faces, i);
+        const straight = role !== "other" ? faceFiles[role] : undefined;
+        return { file: straight ?? file, role };
+      }),
+    [files, faces, faceFiles],
+  );
   const circularFields = useMemo(
     () => ({ ...draftToFields(fields), highlight: highlightFor(fields.highlight, isNew) }),
     [fields, isNew],
   );
   const tolChange = useCallback((t: number) => setTol(t), []);
+  const setFaceCorners = useCallback((face: BoxFace, quad: Quad) => setCorners((c) => ({ ...c, [face]: quad })), []);
 
   // If photos changed and step 2 was skipped, prepare the pack shot in the background.
   useEffect(() => {
     if (step < 3 || cut || !frontFile) return;
     let live = true;
-    buildPackImage({ front: frontFile, side: sideFile, top: topFile, rots, removeBg, tol, threeD })
+    buildPackImage({ front: frontFile, side: sideFile, top: topFile, rots, removeBg, tol, threeD, notABox, corners })
       .then((res) => {
-        if (live) setCut(res.canvas);
+        if (!live) return;
+        setCut(res.canvas);
+        setFaceCanvases(res.faces ?? {});
       })
       .catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [step, cut, frontFile, sideFile, topFile, rots, removeBg, tol, threeD]);
+  }, [step, cut, frontFile, sideFile, topFile, rots, removeBg, tol, threeD, notABox, corners]);
 
   function go(n: number) {
     setStep(n);
@@ -85,6 +142,8 @@ export function Wizard({ product }: { product: Product | null }) {
     setFiles(next);
     setFaces(nextFaces);
     setRots(NO_ROTATION);
+    setCorners({});
+    setFaceCanvases({});
     setCut(null);
   }
 
@@ -94,6 +153,13 @@ export function Wizard({ product }: { product: Product | null }) {
 
   function rotate(face: keyof FaceRotations) {
     setRots((r) => ({ ...r, [face]: (r[face] + 90) % 360 }));
+    // Corners belong to the upright photo, so they are found again after a turn.
+    setCorners((c) => withoutCorners(c, face));
+  }
+
+  function changeNotABox(on: boolean) {
+    setNotABox(on);
+    setFaceCanvases({});
   }
 
   let canNext = true;
@@ -208,13 +274,23 @@ export function Wizard({ product }: { product: Product | null }) {
           onThreeD={setThreeD}
           onTol={tolChange}
           onCut={setCut}
+          notABox={notABox}
+          corners={corners}
+          onNotABox={changeNotABox}
+          onCorners={setFaceCorners}
+          onFaceCanvases={setFaceCanvases}
         />
       )}
       {step === 3 && (
         <DetailsStep
           fields={fields}
           low={low}
-          files={files}
+          photos={aiPhotos}
+          strengthOnFront={strengthOnFront}
+          onStrengthOnFront={(v) => {
+            setStrengthOnFront(v);
+            detailsChanged();
+          }}
           confirmed={confirmed}
           isNew={isNew}
           onFields={(f, l) => {

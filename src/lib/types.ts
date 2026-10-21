@@ -1,4 +1,4 @@
-import type { TemplateKey } from "./constants";
+import type { ImageRole, TemplateKey } from "./constants";
 
 export type Product = {
   id: string;
@@ -47,5 +47,11 @@ export type CheckLevel = "good" | "warn" | "bad";
 export type Check = { level: CheckLevel; text: string };
 
 export type Confidence = "high" | "low";
-export type AiField = { value: string | number | null; confidence: Confidence };
+/** One field of an AI reading. source and quote are the evidence: which photo, and the exact printed text. */
+export type AiField = {
+  value: string | number | null;
+  confidence: Confidence;
+  source?: ImageRole | null;
+  quote?: string | null;
+};
 export type AiReadResult = Partial<Record<string, AiField>>;

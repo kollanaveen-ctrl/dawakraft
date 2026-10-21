@@ -46,7 +46,7 @@ function LoginForm() {
     const { error } = await supabaseBrowser().auth.verifyOtp({ email: email.trim().toLowerCase(), token, type: "email" });
     setBusy(false);
     if (error) return show("That code didn't work. Check it, or send a new email.", true);
-    router.replace("/");
+    router.replace("/catalog");
     router.refresh();
   }
 

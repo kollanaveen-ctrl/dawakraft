@@ -1,3 +1,4 @@
+import { compositionChecks } from "./composition";
 import { BANNED } from "./constants";
 import type { Check, DraftFields } from "./types";
 
@@ -8,6 +9,8 @@ type CheckInput = {
   >;
   confirmed: boolean;
   companyName: string;
+  /** The strength as printed on the front panel (optional); checked against the composition. */
+  strengthOnFront?: string;
 };
 
 const REQUIRED: ReadonlyArray<readonly [keyof CheckInput["fields"], string]> = [
@@ -24,7 +27,7 @@ export function bannedWords(text: string): string[] {
 }
 
 /** The compliance checklist shown in step 4. Rules and copy match the prototype. */
-export function runChecks({ fields: f, confirmed, companyName }: CheckInput): Check[] {
+export function runChecks({ fields: f, confirmed, companyName, strengthOnFront }: CheckInput): Check[] {
   const out: Check[] = [];
 
   const missing = REQUIRED.filter(([k]) => {
@@ -53,6 +56,9 @@ export function runChecks({ fields: f, confirmed, companyName }: CheckInput): Ch
         }
       : { level: "good", text: "No cure, guarantee or superlative claims found." },
   );
+
+  // Strength safety: unit-less numbers, letters read as digits, front vs composition mismatch.
+  out.push(...compositionChecks({ composition: f.composition, strengthOnFront }));
 
   if (["H", "H1", "X"].includes(f.schedule)) {
     out.push({

@@ -1,11 +1,15 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import type { FaceRotations } from "@/lib/faces";
+// Step 2. A box is straightened face by face from its corners (BoxCleanup); a bottle, tube or strip,
+// or the saved picture when editing, goes through background removal (FlatCleanup, below).
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { BoxFace, FaceCanvases, FaceCorners, FaceRotations } from "@/lib/faces";
 import { buildPackImage, type PackResult } from "@/lib/image/packshot";
+import type { Quad } from "@/lib/image/perspective";
+import { BoxCleanup } from "./BoxCleanup";
 
 const SLIDER_DEBOUNCE_MS = 180;
 
-type Props = {
+type FlatProps = {
   /** The new front photo, or the saved product image when editing without new photos. */
   front: File | HTMLImageElement | null;
   side: File | null;
@@ -22,6 +26,16 @@ type Props = {
   onCut: (canvas: HTMLCanvasElement | null) => void;
 };
 
+type Props = FlatProps & {
+  /** Bottle, tube or strip: no corners, background removal instead. */
+  notABox: boolean;
+  corners: FaceCorners;
+  onNotABox: (on: boolean) => void;
+  onCorners: (face: BoxFace, quad: Quad) => void;
+  /** Called with the straightened faces. Must be stable (a state setter). */
+  onFaceCanvases: (faces: FaceCanvases) => void;
+};
+
 type Status = { text: string; err: boolean };
 
 function statusFor(res: PackResult, isNewPhoto: boolean, removeBg: boolean): Status {
@@ -32,8 +46,44 @@ function statusFor(res: PackResult, isNewPhoto: boolean, removeBg: boolean): Sta
   return { text: "Background removed. Check the edges of the box.", err: false };
 }
 
+function NotABoxToggle({ checked, onChange }: { checked: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="confirm">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        Not a box (bottle, tube, strip)
+        <br />
+        <span className="muted">Skips the corners and removes the background instead.</span>
+      </span>
+    </label>
+  );
+}
+
 export function CleanupStep(props: Props) {
-  const { front, side, top, rots, removeBg, threeD, tol, onRotate, onRemoveBg, onThreeD, onTol, onCut } = props;
+  const { notABox, corners, onNotABox, onCorners, onFaceCanvases, ...flat } = props;
+  const { front, side, top, rots, threeD, onRotate, onThreeD, onCut } = flat;
+  // New photos only: a saved picture is already the finished pack shot, so it has no corners.
+  if (!(front instanceof File)) return <FlatCleanup {...flat} />;
+  const toggle = <NotABoxToggle checked={notABox} onChange={onNotABox} />;
+  if (notABox) return <FlatCleanup {...flat} toggle={toggle} />;
+  return (
+    <BoxCleanup
+      files={{ front, side, top }}
+      rots={rots}
+      threeD={threeD}
+      corners={corners}
+      onRotate={onRotate}
+      onThreeD={onThreeD}
+      onCorners={onCorners}
+      onCut={onCut}
+      onFaceCanvases={onFaceCanvases}
+      notABoxToggle={toggle}
+    />
+  );
+}
+
+function FlatCleanup(props: FlatProps & { toggle?: ReactNode }) {
+  const { front, side, top, rots, removeBg, threeD, tol, onRotate, onRemoveBg, onThreeD, onTol, onCut, toggle } = props;
   const view = useRef<HTMLCanvasElement>(null);
   const [status, setStatus] = useState<Status>({ text: "", err: false });
   const [tolShown, setTolShown] = useState(tol);
@@ -57,7 +107,7 @@ export function CleanupStep(props: Props) {
       setStatus({ text: "Working…", err: false });
       await new Promise((r) => setTimeout(r, 20));
       if (!live) return;
-      const res = await buildPackImage({ front, side, top, rots, removeBg, tol, threeD: show3D }).catch(() => null);
+      const res = await buildPackImage({ front, side, top, rots, removeBg, tol, threeD: show3D, notABox: true }).catch(() => null);
       if (!live) return;
       if (!res) {
         setStatus({ text: "A photo couldn't be opened. Go back, remove it, and choose a JPG or PNG photo.", err: true });
@@ -85,6 +135,7 @@ export function CleanupStep(props: Props) {
       </div>
       <div className="card stack">
         <h2>Clean up the product picture</h2>
+        {toggle}
         {canBe3D && (
           <label className="confirm">
             <input type="checkbox" checked={threeD} onChange={(e) => onThreeD(e.target.checked)} />

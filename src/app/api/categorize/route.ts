@@ -1,55 +1,38 @@
-// POST /api/categorize: sort imported products into categories with Claude.
+// POST /api/categorize: sort imported products into categories with the AI provider.
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { AiError, categorize } from "@/lib/ai/claude";
-import { AI_CATEGORY_BATCH } from "@/lib/constants";
-import { demoAiAllowed } from "@/lib/config";
-import { allow, claimAiUse } from "@/lib/rate-limit";
-import { signedIn } from "@/lib/supabase/server";
+import { aiProvider } from "@/lib/ai";
+import { aiFailure, checkAiAccess, readJsonBody } from "@/lib/ai/access";
+import { AiError, CategorizeRequestSchema } from "@/lib/ai/types";
 
 export const maxDuration = 120;
 
 const SORTS_PER_10_MIN = 10;
-const WINDOW_MS = 10 * 60_000;
 
-const Body = z.object({
-  items: z
-    .array(
-      z.object({
-        i: z.number().int().min(0).max(10_000),
-        name: z.string().min(1).max(200),
-        composition: z.string().max(500),
-      }),
-    )
-    .min(1)
-    .max(AI_CATEGORY_BATCH),
-});
+function statusOf(code: AiError["code"]): number {
+  if (code === "rate_limited") return 429;
+  if (code === "not_configured") return 503;
+  return 502;
+}
 
 export async function POST(request: Request) {
-  const session = await signedIn();
-  // Demo mode has no sign-in; it may use AI only when running on your own computer.
-  if (!session && !demoAiAllowed()) return NextResponse.json({ ok: false, error: "not_signed_in" }, { status: 401 });
+  const choice = aiProvider();
+  if (!choice.ok) return aiFailure(choice.error, statusOf(choice.error));
+  const { provider } = choice;
 
-  const parsed = Body.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
+  const read = await readJsonBody(request);
+  if (read.tooLarge) return aiFailure("too_large", 413);
+  const parsed = CategorizeRequestSchema.safeParse(read.body);
+  if (!parsed.success) return aiFailure("bad_request", 400);
 
-  try {
-    const withinLimit =
-      allow(`sort:${session?.user.id ?? "demo"}`, SORTS_PER_10_MIN, WINDOW_MS) &&
-      (!session || (await claimAiUse(session.supabase, "sort", SORTS_PER_10_MIN, WINDOW_MS)));
-    if (!withinLimit) return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
-  } catch (error) {
-    console.error("[categorize] usage check failed", error);
-    return NextResponse.json({ ok: false, error: "failed" }, { status: 503 });
-  }
+  const denied = await checkAiAccess(provider, "sort", SORTS_PER_10_MIN, "categorize");
+  if (denied) return denied;
 
   try {
-    const data = await categorize(parsed.data.items);
-    return NextResponse.json({ ok: true, data });
+    const { data, meta } = await provider.categorize(parsed.data.items);
+    return NextResponse.json({ ok: true, data, meta });
   } catch (error) {
     const e = error instanceof AiError ? error : new AiError("failed", String(error));
-    console.error("[categorize]", e.code, e.message);
-    const status = e.code === "rate_limited" ? 429 : e.code === "not_configured" ? 503 : 502;
-    return NextResponse.json({ ok: false, error: e.code }, { status });
+    console.error("[categorize]", provider.id, e.code, e.message);
+    return aiFailure(e.code, statusOf(e.code));
   }
 }

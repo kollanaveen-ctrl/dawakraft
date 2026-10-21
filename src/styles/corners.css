@@ -1,0 +1,95 @@
+/* Dot-connected corners (step 2 for a box): face photo with draggable corner dots, a straightened
+   preview, face tabs and the depth warning. Uses only the app's existing design tokens. */
+
+/* Side padding keeps a dot on the photo's edge (22px half hit area) inside the card on a phone. */
+.corner-editor { display: flex; flex-direction: column; gap: 12px; padding: 0 6px; }
+
+/* The stage keeps the photo's aspect ratio (--ar = width / height, set inline) so the dots, which
+   are placed in percentages, line up with the photo at any width. Tall photos are capped in height. */
+.corner-stage {
+  --ar: 1;
+  position: relative;
+  aspect-ratio: var(--ar);
+  width: min(100%, calc(min(70vh, 560px) * var(--ar)));
+  margin: 0 auto;
+  border-radius: var(--r);
+  overflow: visible;
+  background: var(--sunken);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.corner-stage canvas { display: block; width: 100%; height: 100%; border-radius: var(--r); }
+
+.corner-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.corner-lines polygon { fill: color-mix(in srgb, var(--accent) 14%, transparent); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+
+/* 44px hit area around a small visible dot, so it is easy to grab with a thumb. */
+.corner-handle {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  touch-action: none;
+}
+.corner-handle:active { cursor: grabbing; }
+.corner-handle span {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--accent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--ink) 35%, transparent);
+}
+.corner-handle:hover span { background: var(--accent-soft); }
+.corner-handle:focus-visible { outline: none; }
+.corner-handle:focus-visible span { background: var(--accent); border-color: var(--accent-ink); outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.corner-foot { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.corner-foot > .stack { flex: 1 1 160px; gap: 10px; }
+.corner-preview { margin: 0; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.corner-preview canvas {
+  display: block;
+  max-width: min(220px, 40vw);
+  max-height: 160px;
+  width: auto;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--sunken);
+}
+.corner-preview figcaption { font-size: 0.78rem; }
+
+/* Front / Side / Top switcher. */
+.face-tabs { display: flex; gap: 4px; padding: 4px; border-radius: var(--r); background: var(--sunken); }
+.face-tab {
+  flex: 1 1 0;
+  min-height: 44px;
+  border: 0;
+  border-radius: calc(var(--r) - 3px);
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+.face-tab:hover { color: var(--ink); }
+.face-tab[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.face-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.corner-warn {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-size: 0.9rem;
+  font-weight: 600;
+}

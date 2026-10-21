@@ -35,14 +35,13 @@ export function cleanPhoto(img: HTMLImageElement, rot: number, removeBg: boolean
   return removeBg ? cutout(src, tol) : { canvas: src, ok: true };
 }
 
-export function cutout(src: HTMLCanvasElement, tol: number): CutResult {
-  const w = src.width;
-  const h = src.height;
-  const ctx = src.getContext("2d", { willReadFrequently: true });
-  if (!ctx || !w || !h) return { canvas: src, ok: false };
-  const im = ctx.getImageData(0, 0, w, h);
-  const d = im.data;
-
+/**
+ * Flood-fill from the photo's edges: 1 marks background (close to the average edge colour and
+ * connected to the edge), 0 marks the product. Pure, so corner detection can share it in tests.
+ */
+export function backgroundMask(d: Uint8ClampedArray, w: number, h: number, tol: number): Uint8Array {
+  const bg = new Uint8Array(w * h);
+  if (!w || !h) return bg;
   const border: number[] = [];
   for (let x = 0; x < w; x += 2) border.push(x, (h - 1) * w + x);
   for (let y = 0; y < h; y += 2) border.push(y * w, y * w + w - 1);
@@ -64,7 +63,6 @@ export function cutout(src: HTMLCanvasElement, tol: number): CutResult {
     return Math.sqrt(dr * dr + dg * dg + db * db);
   };
 
-  const bg = new Uint8Array(w * h);
   const q = new Int32Array(w * h);
   let qh = 0;
   let qt = 0;
@@ -86,6 +84,17 @@ export function cutout(src: HTMLCanvasElement, tol: number): CutResult {
       }
     }
   }
+  return bg;
+}
+
+export function cutout(src: HTMLCanvasElement, tol: number): CutResult {
+  const w = src.width;
+  const h = src.height;
+  const ctx = src.getContext("2d", { willReadFrequently: true });
+  if (!ctx || !w || !h) return { canvas: src, ok: false };
+  const im = ctx.getImageData(0, 0, w, h);
+  const d = im.data;
+  const bg = backgroundMask(d, w, h, tol);
 
   let kept = 0;
   let minX = w;

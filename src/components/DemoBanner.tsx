@@ -15,8 +15,8 @@ export function DemoBanner() {
         </p>
       ) : (
         <p>
-          <b>Demo.</b> Try everything freely: your products and company details are saved only in this browser, on this device. Reading the box with AI is
-          switched off in this demo.
+          <b>Demo.</b> Try everything freely: your products and company details are saved only in this browser, on this device. &ldquo;Read box with AI&rdquo;
+          fills in clearly labelled sample values here, not a real reading of your photos.
         </p>
       )}
     </div>

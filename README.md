@@ -17,13 +17,29 @@ Built for small pharma distributors, PCD companies and agents in India. Each dis
 | **Vercel** | Free hosting that gives you a public link. |
 | **PWA** | Lets people tap "Add to Home screen" so it opens like an app. |
 
-Your Claude key stays on the server. The phone never sees it, and only signed-in users can use the AI, with a limit of 20 box readings per 10 minutes per person.
+Your Claude key stays on the server. The phone never sees it, and only signed-in users can use the paid Claude reading, with a limit of 20 box readings per 10 minutes per person. Without a key, a free sample reader fills in clearly labelled demo values instead.
 
 ---
 
 ## Try it right now (demo mode, no accounts needed)
 
-Until real Supabase keys are in `.env.local`, the app runs in **demo mode**: no sign-in, and products, company details and photos are saved only in the browser you're using. A yellow "Demo mode" banner shows on every screen. Everything works except AI reading, which also needs a real Claude key. Run `npm install` once, then `npm run dev`, and open http://localhost:3000.
+Until real Supabase keys are in `.env.local`, the app runs in **demo mode**: no sign-in, and products, company details and photos are saved only in the browser you're using. A yellow "Demo mode" banner shows on every screen. Everything works; until a real Claude key is added, "Read box with AI" gives a clearly labelled sample reading instead of reading your photos (see `AI_PROVIDER` below). Run `npm install` once, then `npm run dev`, and open http://localhost:3000.
+
+**Where things are:** http://localhost:3000/ is the public home page (the one search engines see). The app itself starts at **/catalog** ("Open the app" or "Try the free demo" on the home page).
+
+### Choosing the AI: `AI_PROVIDER`
+
+Without a Claude key the app uses a free **mock** reader: it fills the form with the same made-up sample carton every time and clearly says "Sample reading: these are demo values, not read from your photos". That lets you try the whole flow at no cost. You can choose the reader with one optional line in `.env.local` (or in Vercel's Environment Variables):
+
+| Setting | What happens |
+|---|---|
+| *(not set)* | Claude when `ANTHROPIC_API_KEY` is a real key, otherwise the mock. |
+| `AI_PROVIDER=anthropic` | Always Claude. Without a key, AI buttons say AI isn't set up (no samples). |
+| `AI_PROVIDER=mock` | Always the labelled mock, even if a key is present. |
+| `AI_PROVIDER=off` | AI switched off; type details by hand. |
+| anything else | Treated as `off`, so a typo can never switch on a paid service. |
+
+Details in [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 ## Run it on your computer (about 20 minutes, one time)
 
@@ -129,6 +145,20 @@ The catalog has three rows of filters, and they can be combined:
 - **Company:** the "Marketed by" company, or "Manufactured by" if there's no marketer. Different spellings such as "Cipla Ltd." and "CIPLA LIMITED" are grouped together.
 
 "Copy catalog list" copies only the products currently shown, so you can send one company's list or just the new launches.
+
+## Project docs
+
+| Document | What's in it |
+|---|---|
+| [Product plan](docs/PRODUCT_PLAN.md) | Who it's for, problems it solves, features and priorities, key decisions. |
+| [Architecture](docs/ARCHITECTURE.md) | The stack, module map, data model, API contracts, security, deployment. |
+| [Workflows](docs/WORKFLOWS.md) | Every user journey step by step, with failures and recovery. |
+| [Design system](docs/DESIGN_SYSTEM.md) | Logo, colours, fonts, components, states, accessibility rules. |
+| [SEO plan](docs/SEO_PLAN.md) | What's done for search engines, how it was checked, next steps. |
+| [Integrations](docs/INTEGRATIONS.md) | Supabase, Claude, the mock AI, Vercel: settings, limits, costs, status. |
+| [Testing](docs/TESTING.md) | Commands, current results, manual checks, known gaps. |
+| [Roadmap](docs/ROADMAP.md) | What's done, what's left, what comes next. |
+| [Decision records (ADRs)](docs/adr/README.md) | Why the big choices were made: [0001 Next.js + Supabase](docs/adr/0001-nextjs-supabase.md), [0002 demo mode](docs/adr/0002-demo-mode-browser-storage.md), [0003 provider-independent AI](docs/adr/0003-provider-independent-ai.md), [0004 on-device pack shots](docs/adr/0004-on-device-pack-shots.md), [0005 landing at `/`, app at `/catalog`](docs/adr/0005-public-landing-and-catalog-route.md). |
 
 ## Good to know
 

@@ -1,43 +1,49 @@
 @import "tailwindcss";
 
-/* Design tokens from the prototype. Fonts come from next/font (see layout.tsx). */
+/* Dawakraft design tokens (see docs/DESIGN_SYSTEM.md). Fonts come from next/font (layout.tsx).
+   Pine = action and trust, Marigold = highlight, Kraft paper = calm warm background. */
 :root {
-  --bg: #f2f5f5;
+  --bg: #f6f4ee;
   --surface: #ffffff;
-  --sunken: #e7eded;
-  --ink: #0f1f24;
-  --muted: #5a6b70;
-  --line: #d3dcdd;
-  --accent: #0b7a63;
+  --sunken: #eceae3;
+  --ink: #14201d;
+  --muted: #5b6863;
+  --line: #dcd8cd;
+  --accent: #0e5e4e;
+  --accent-hover: #0b4c3f;
   --accent-ink: #ffffff;
-  --accent-soft: #dcefe9;
-  --capsule: #f2b134;
-  --capsule-ink: #3f2b00;
-  --warn: #9a4a06;
-  --warn-soft: #fcefd9;
-  --bad: #b42318;
-  --bad-soft: #fce4e1;
-  --good: #0b7a63;
-  --good-soft: #dcefe9;
-  --r: 10px;
+  --accent-soft: #dcebe4;
+  --capsule: #e9a23b;
+  --capsule-ink: #3a2600;
+  --warn: #9a5506;
+  --warn-soft: #fbefd8;
+  --bad: #b3261e;
+  --bad-soft: #fbe3e0;
+  --good: #0e5e4e;
+  --good-soft: #dcebe4;
+  --shadow: 0 1px 2px rgba(20, 32, 29, 0.06), 0 6px 20px -12px rgba(20, 32, 29, 0.25);
+  --r: 12px;
+  --nav-h: 64px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0c1416;
-    --surface: #142023;
-    --sunken: #1a292d;
-    --ink: #e5eeee;
-    --muted: #9aaeb1;
-    --line: #29393d;
-    --accent: #3cc4a0;
-    --accent-ink: #04231b;
-    --accent-soft: #16392f;
-    --warn: #f2a94e;
-    --warn-soft: #3a2a13;
-    --bad: #f2857b;
-    --bad-soft: #3c1c19;
-    --good: #3cc4a0;
-    --good-soft: #16392f;
+    --bg: #0d1412;
+    --surface: #141d1a;
+    --sunken: #1b2622;
+    --ink: #e8efec;
+    --muted: #9caba5;
+    --line: #2a3632;
+    --accent: #4cc7a4;
+    --accent-hover: #6bd5b6;
+    --accent-ink: #06231b;
+    --accent-soft: #173a31;
+    --warn: #f0b060;
+    --warn-soft: #3a2a12;
+    --bad: #f28b82;
+    --bad-soft: #3b1d1a;
+    --good: #4cc7a4;
+    --good-soft: #173a31;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -14px rgba(0, 0, 0, 0.7);
     color-scheme: dark;
   }
 }
@@ -219,6 +225,52 @@
   .vis-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
+/* ---------- Brand layer: logo, navigation, states, landing ---------- */
+@layer components {
+  .skip-link { position: absolute; left: 12px; top: -48px; z-index: 50; background: var(--ink); color: var(--bg); padding: 8px 12px; border-radius: 8px; font-weight: 600; }
+  .skip-link:focus { top: calc(8px + env(safe-area-inset-top, 0px)); }
+
+  .logo { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); }
+  .logo-word { display: flex; flex-direction: column; font-family: var(--f-display); font-weight: 800; font-size: 1.28rem; letter-spacing: -0.03em; line-height: 1.05; }
+  .logo-kraft { color: var(--accent); }
+  .logo-word small { font-family: var(--f-mono); font-size: 0.6rem; font-weight: 500; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
+
+  .btn { border-radius: var(--r); transition: border-color 0.15s, background 0.15s, transform 0.1s; }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn:active { transform: translateY(1px); }
+  .btn.lg { min-height: 50px; padding: 12px 22px; font-size: 1.02rem; }
+  .card, .pcard { box-shadow: var(--shadow); }
+  .card { border-radius: 16px; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .tab { text-decoration: none; }
+
+  /* Bottom tab bar on phones; top bar links on wider screens. */
+  .tabs-desktop { display: flex; }
+  .bottom-nav { display: none; }
+  @media (max-width: 720px) {
+    .tabs-desktop { display: none; }
+    .bottom-nav {
+      display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; inset: auto 0 0 0; z-index: 30;
+      background: var(--surface); border-top: 1px solid var(--line);
+      padding: 6px max(8px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -8px 24px -18px rgba(0, 0, 0, 0.4);
+    }
+    .bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 4px; border-radius: 10px; color: var(--muted); font-size: 0.72rem; font-weight: 600; text-decoration: none; min-height: 48px; justify-content: center; }
+    .bottom-nav a[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+    .bottom-nav a.new { color: var(--accent-ink); background: var(--accent); }
+    main.wrap { padding-bottom: calc(var(--nav-h) + 32px + env(safe-area-inset-bottom, 0px)); }
+    .toast { bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom, 0px)); }
+  }
+
+  /* Loading skeletons (catalog). */
+  .skeleton { border-radius: 12px; background: linear-gradient(90deg, var(--sunken) 25%, var(--surface) 50%, var(--sunken) 75%); background-size: 200% 100%; aspect-ratio: 1080 / 1500; }
+  @media (prefers-reduced-motion: no-preference) { .skeleton { animation: shimmer 1.4s linear infinite; } }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  .empty .empty-art { width: 84px; height: 84px; color: var(--accent); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .pcard, .btn, .chip { transition: border-color 0.15s, background 0.15s; }
+  .pcard, .chip { transition: border-color 0.15s, background 0.15s, transform 0.15s; }
+  .pcard:hover { transform: translateY(-2px); }
 }
