@@ -1,82 +1,57 @@
 # Dawakraft
 
-Photograph a medicine box → remove the background → AI reads the specs → you confirm → compliance check → branded product circular (4 layouts, including a "Catalogue card" copy of the printed catalogue) → searchable catalog → share on WhatsApp.
+**From a photo of a medicine box to a compliant, branded product circular, a printed-style catalogue and a WhatsApp message, in a few minutes, on a phone.**
 
-Built for small pharma distributors, PCD companies and agents in India. Each distributor signs in with their email and sees only their own catalog and branding.
+Built for small pharma distributors, PCD companies and medical representatives in India, who today send blurry carton photos or pay a designer for every circular.
+
+**Live demo:** https://dawakraft.vercel.app (the app itself is at `/catalog`)
+
+```
+Photo of the box → straightened 3D product picture → AI reads the carton → you confirm
+→ compliance check → circular (5 designs) → catalogue + catalogue PDF → WhatsApp
+```
 
 ---
 
-## What's inside, in plain words
+## What it does
+
+| Feature | In plain words |
+|---|---|
+| **Product picture** | Photograph the front, the left end and the strip, bottle or tube. The app straightens the box by itself and shows it at an angle with the real strip in front, the way printed pharma catalogues do. Built only from your photos, never drawn by AI. |
+| **AI reads the carton** | Gemini (or Claude) reads brand, composition, pack, MRP, schedule, manufacturer and more. Every field shows which photo it came from and the exact printed words. The composition is always marked "check this". |
+| **You confirm** | Nothing goes out until you tick "I checked these details against the carton". |
+| **Compliance check** | Required fields, banned claim words (cure, guarantee, best, 100%…), a strength cross-check against the front of the pack, Schedule H / H1 / X warnings, and the trade-only line on every image. |
+| **Five circular designs** | **Catalogue card** (a copy of the printed catalogue card, the default), **Promo circular** (a landscape visual aid, below), **Clean**, **Side band** and **Spotlight**. |
+| **Promo circular** | Brand wordmark with its suffix badge (Doloride **SP**), ingredient tags, the "In" indications box, price ticket, headline and banner over a lifestyle photo. Colours match the pack. **AI writes the copy** from the composition and uses, and **AI can make the photo** (labelled "AI-generated image"). |
+| **Catalogue** | Search, plus filters by launch (new launches move to Existing after 60 days), category and company. Import a list from Excel or CSV. |
+| **Catalogue PDF** | Every product as a card, four to a page, with your logo, the section pill, "Product Catalogue 2026-27", the division bar and page numbers, like a bound catalogue. Download or share one PDF. |
+| **Share** | WhatsApp image + message on phones, download, copy message. Works as an app from the home screen (PWA). |
+
+---
+
+## Try it now
+
+- **Online:** open https://dawakraft.vercel.app and press **Try the free demo**. Everything is saved only in your browser. AI reading online needs the **demo passcode** (ask the team), until sign-in is switched on.
+- **On your computer:** see [Run it on your computer](#run-it-on-your-computer) below. Without any keys the app runs in **demo mode**, and the AI gives clearly labelled sample answers, so the whole flow can be tried at no cost.
+
+---
+
+## How it's built
 
 | Piece | What it does |
 |---|---|
-| **Next.js** | The website itself, plus two small server functions that talk to the AI. |
-| **Tailwind** | The styling system. The colours, fonts and look are the same as the original prototype. |
-| **Supabase** | The online database and photo storage. It keeps products, the company profile and box photos, and handles email sign-in. |
-| **Claude (Anthropic)** | Reads the printed text on the box photos and fills in the form. |
-| **Vercel** | Free hosting that gives you a public link. |
-| **PWA** | Lets people tap "Add to Home screen" so it opens like an app. |
-
-Your Claude key stays on the server. The phone never sees it, and only signed-in users can use the paid Claude reading, with a limit of 20 box readings per 10 minutes per person. Without a key, a free sample reader fills in clearly labelled demo values instead.
+| **Next.js 16 + React 19** | The website and five small server functions (`src/app/api`): read the box, sort categories, write promo copy, make a promo photo, unlock the demo. |
+| **Tailwind CSS 4** | Styling. Brand colours: pine `#0E5E4E`, marigold `#E9A23B`, kraft paper `#F6F4EE`. |
+| **Canvas, on the phone** | Straightening, background removal, the 3D product picture, every circular and the catalogue PDF (jsPDF) are drawn on the device, free. |
+| **Supabase** | Database, photo storage and email sign-in, with row-level security so each distributor sees only their own data. |
+| **AI layer (`src/lib/ai`)** | Provider-independent: Google **Gemini via OpenRouter** (active), **Claude**, or a free **mock**. Keys stay on the server; paid AI needs sign-in (or the demo passcode) and has rate limits. |
+| **Vercel** | Hosting. Every push to `main` deploys automatically. |
 
 ---
 
-## Try it right now (demo mode, no accounts needed)
+## Run it on your computer
 
-Until real Supabase keys are in `.env.local`, the app runs in **demo mode**: no sign-in, and products, company details and photos are saved only in the browser you're using. A yellow "Demo mode" banner shows on every screen. Everything works; until a real Claude key is added, "Read box with AI" gives a clearly labelled sample reading instead of reading your photos (see `AI_PROVIDER` below). Run `npm install` once, then `npm run dev`, and open http://localhost:3000.
-
-**Where things are:** http://localhost:3000/ is the public home page (the one search engines see). The app itself starts at **/catalog** ("Open the app" or "Try the free demo" on the home page).
-
-### Choosing the AI: `AI_PROVIDER`
-
-Without a Claude key the app uses a free **mock** reader: it fills the form with the same made-up sample carton every time and clearly says "Sample reading: these are demo values, not read from your photos". That lets you try the whole flow at no cost. You can choose the reader with one optional line in `.env.local` (or in Vercel's Environment Variables):
-
-| Setting | What happens |
-|---|---|
-| *(not set)* | Claude when `ANTHROPIC_API_KEY` is a real key, otherwise the mock. |
-| `AI_PROVIDER=anthropic` | Always Claude. Without a key, AI buttons say AI isn't set up (no samples). |
-| `AI_PROVIDER=mock` | Always the labelled mock, even if a key is present. |
-| `AI_PROVIDER=off` | AI switched off; type details by hand. |
-| anything else | Treated as `off`, so a typo can never switch on a paid service. |
-
-Details in [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
-
-## Run it on your computer (about 20 minutes, one time)
-
-You need **Node.js 20 or newer** (download the "LTS" version from nodejs.org).
-
-### Step 1: Create the Supabase project (the database)
-
-1. Go to **supabase.com**, sign up, and click **New project**. Pick the **Mumbai (ap-south-1)** region so it's fast in India.
-2. When it's ready, open **SQL Editor → New query**. Open the file `supabase/migrations/0001_init.sql` from this folder, copy everything, paste it in, and press **Run**. This creates the tables and the private photo storage, and makes sure each user only sees their own data. Then do the same with `supabase/migrations/0002_segments.sql`, which adds the "new launch" date, and then `supabase/migrations/0003_uses.sql`, which adds the optional "Uses (indications)" field shown on the Catalogue card.
-3. Open **Authentication → URL Configuration**:
-   - **Site URL:** `http://localhost:3000` (change it to your Vercel link after step 6)
-   - **Redirect URLs:** add `http://localhost:3000/auth/callback`
-4. (Recommended) Open **Authentication → Emails → Magic Link** and add this line to the email body so people can type a code if the link opens in the wrong browser:
-   `Your code: {{ .Token }}`
-5. Open **Project Settings → API keys** (or the **Connect** button) and keep two values handy: the **Project URL** and the **publishable** key (older projects call it the **anon** key).
-
-> Supabase's built-in email sender only sends a few emails per hour, which is fine for testing and a demo. For real users, connect your own email service under Authentication → SMTP.
-
-### Step 2: Get a Claude API key (the AI)
-
-Go to **console.anthropic.com → API keys → Create key**. Add a little credit under Billing; each box reading costs a few rupees at most.
-
-### Step 3: Put the keys in a settings file
-
-In the `app` folder, open the file `.env.local` (copy `.env.example` and rename it if `.env.local` isn't there). Fill in:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=...your Project URL...
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...your publishable key...
-ANTHROPIC_API_KEY=...your Claude key...
-```
-
-Never share this file or upload it anywhere. It's already excluded from git.
-
-### Step 4: Start the app
-
-Open a terminal in the `app` folder and run these two commands (the first one only the first time):
+You need **Node.js 20 or newer** (the "LTS" version from nodejs.org).
 
 ```bash
 npm install
@@ -86,53 +61,75 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:3000**, type your email, and click the link in the email (or type the code).
+Open http://localhost:3000. With no keys set, the app runs in demo mode.
 
-**Try it on your phone on the same Wi-Fi:** the terminal prints a "Network" address such as `http://192.168.1.5:3000`. The camera button works there, but email links point to `localhost`, so use the code from the email to sign in.
+### Settings (`.env.local`)
+
+Copy `.env.example` to `.env.local` in the `app` folder and fill in what you have. **Never share or upload this file**; it's excluded from git.
+
+| Setting | What it's for |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Real accounts and online storage (Supabase → Project Settings → API keys). Without them: demo mode. |
+| `OPENROUTER_API_KEY` | Google Gemini via OpenRouter: box reading, category sorting, promo copy and promo photos. |
+| `ANTHROPIC_API_KEY` | Claude instead of Gemini (optional). |
+| `AI_PROVIDER` | Optional: `gemini`, `anthropic`, `mock` or `off`. Unset picks Claude if its key is real, else Gemini, else the mock. A typo means off, never a paid service. |
+| `OPENROUTER_MODEL`, `OPENROUTER_CATEGORY_MODEL`, `OPENROUTER_COPY_MODEL`, `OPENROUTER_IMAGE_MODEL` | Optional model overrides; only `google/` models are accepted. |
+| `DEMO_PASSCODE` | Online demo only: lets people with the passcode use paid AI for 12 hours. Delete it once sign-in is on. |
+
+Full details, limits and costs: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+
+### Turning on real accounts (Supabase)
+
+1. At **supabase.com**, create a project (region **Mumbai, ap-south-1**).
+2. In **SQL Editor**, run each file in `supabase/migrations/` in order: `0001_init.sql` (tables, security, photo storage), `0002_segments.sql` (new-launch date), `0003_uses.sql` (Uses field), `0004_promo.sql` (Promo circular). **Saving fails until all four have run.**
+3. In **Authentication → URL Configuration**, set the Site URL to your site and add `<your site>/auth/callback` to Redirect URLs.
+4. Optional: add `Your code: {{ .Token }}` to the Magic Link email so people can type a code instead of clicking the link. For real users, connect your own email service under Authentication → SMTP.
+5. Put the Project URL and publishable key in `.env.local` (and in Vercel), and restart.
 
 ---
 
 ## Put it online (Vercel)
 
-1. Put this `app` folder on GitHub (GitHub Desktop is the easiest way).
-2. Go to **vercel.com → Add New → Project**, pick the repository, and keep the defaults.
-3. Under **Environment Variables**, add the same three values from `.env.local`.
-4. Click **Deploy**. You'll get a link like `https://dawakraft.vercel.app`.
-5. Back in Supabase **Authentication → URL Configuration**, set **Site URL** to that link and add `https://your-link/auth/callback` to **Redirect URLs**.
-6. On a phone, open the link and choose **Add to Home screen** (Chrome: ⋮ menu; iPhone Safari: Share button).
+1. Import this GitHub repository at **vercel.com → Add New → Project** and keep the defaults.
+2. Under **Settings → Environment Variables**, add the same settings as `.env.local` (mark keys as Sensitive), then redeploy.
+3. If Supabase is on, add the Vercel link to its URL Configuration (step 3 above).
+4. On a phone, open the link and choose **Add to Home screen**.
 
 ---
 
-## Online demo passcode
+## Using it
 
-While the online site has no login, paid AI (box reading and category sorting) is off for visitors. A shared passcode turns it on for people you trust:
+**New product (5 steps):** Photos → Clean up → Details → Check → Circular.
 
-1. In **Vercel → Project → Settings → Environment Variables**, add `DEMO_PASSCODE` for **Production** with a long, unguessable value (it must not contain `your-`, `example`, `placeholder` or `xxxx`, or it counts as unset), then redeploy.
-2. Share it only with your team and the judges. Visitors type it into the **Demo passcode** box that appears under "Read box with AI" (or "Fill missing categories with AI") and press **Unlock AI**.
-3. That browser is unlocked for 12 hours (an httpOnly cookie signed with the passcode). Changing `DEMO_PASSCODE` cancels every unlock at once.
-4. **Delete `DEMO_PASSCODE` once login exists.**
+- **Photos:** one pack per photo on a **dark plain sheet** (white only for dark or amber bottles), in daylight, without flash. Stand about 1 m back and zoom 2×. Label them **Front**, **Left end**, **Top**, **Strip / bottle / tube** (then pick its type) or **Other side**.
+- **Clean up:** the box is straightened automatically. If an edge can't be found, retake the photo on a dark sheet, or crop it in your gallery and tick **Photos are cropped to the box**.
+- **Details:** press **Read box with AI**, then check every field against the carton. Add **Uses (indications)** for the Catalogue card and Promo circular.
+- **Check:** fix anything red. **Circular:** pick a design and save.
 
-Limits for unlocked visitors, per IP address and per server instance: 8 passcode tries, 15 box reads and 6 category sorts per 10 minutes. Without `DEMO_PASSCODE` (or with a placeholder value) nothing changes.
+**Promo circular:** on a product page choose **Promo circular → Edit promo content**. Press **Write copy with AI** and edit every line; add a photo by uploading one you have the rights to, or **Make a photo with AI** (about ₹7 each). Banned words block sharing; strong claims (prevents, rapid, FDA, effective…) need your tick "I checked these claims", and any later edit asks again.
 
-## How the app is organised
+**Catalogue PDF:** on the Catalog screen press **Catalogue PDF**, set the title and division, then Download or Share.
+
+---
+
+## Project structure
 
 ```
 app/
-  supabase/migrations/0001_init.sql   database tables, security rules, photo storage
-  src/app/                            the pages (catalog, new product, product, company, import, login)
-  src/app/api/read-box/               server function: sends box photos to Claude
-  src/app/api/categorize/             server function: sorts imported products into categories
-  src/components/                     the screens and the 5-step wizard
-  src/lib/compliance.ts               trade-only rules and banned claim words
-  src/lib/circular/                   draws the 4 circular layouts (1080 × 1350 PNG)
-  src/lib/image/corners.ts            finds the edges of each box photo by itself
-  src/lib/image/straighten.ts         straightens each box face to a flat rectangle
-  src/lib/image/cutout.ts             background removal (runs on the phone, free)
-  src/lib/image/packshot.ts           the 3D box built from the front, left end and top photos
-  src/lib/image/companion.ts          places your strip, bottle or tube photo in front of the box
-  src/lib/segments.ts                 catalog segments: company, new launch vs existing
-  src/lib/ai/                         the AI prompt and how its answer fills the form
+  src/app/                  pages: landing (/), catalog, new, product/[id] (+ edit, promo), import, export, company, login
+  src/app/api/              read-box, categorize, write-copy, promo-photo, demo-unlock
+  src/components/           screens, the 5-step wizard, promo editor, catalogue PDF screen
+  src/lib/ai/               AI contract, providers (gemini, anthropic, mock), prompts, access + limits
+  src/lib/image/            edge finding, straightening, background removal, 3D box, strip/bottle placement
+  src/lib/circular/         the five circular designs (promo/ = the landscape Promo circular)
+  src/lib/catalog/          catalogue pages and the PDF
+  src/lib/compliance.ts     the compliance checklist; promo.ts holds promo content and claim checks
+  src/lib/data/             Supabase and demo (browser) storage behind one interface
+  supabase/migrations/      0001–0004 database setup
+  docs/                     product plan, architecture, workflows, design system, SEO, integrations, testing, roadmap, ADRs
 ```
+
+---
 
 ## Checks
 
@@ -141,89 +138,37 @@ npm test
 ```
 
 ```bash
+npm run typecheck
+```
+
+```bash
 npm run build
 ```
 
-`npm test` runs automated checks of the compliance rules, AI answer handling, CSV import and message text. `npm run build` makes sure the whole app compiles.
+`npm test` runs 176 automated checks (compliance rules, AI request and answer handling, image geometry, catalogue pages, promo claims and more). No real AI calls are made in tests.
 
-## 3D pack shots
+---
 
-The product picture is built only from your own photos. It is never drawn by AI, so the strength and the design on the pack stay exactly as printed.
-
-In step 1, label each photo:
-
-- **Front**: the main face with the brand name. Every product needs one.
-- **Left end**: the narrow side on the left of the front, the same way the printed catalogue shows it.
-- **Top**: the top of the box.
-- **Strip / bottle / tube**: one photo of the real strip, bottle or tube. Then pick its type from the list: Strip (blister or alu-alu), Bottle or vial, or Tube.
-- **Other side**: any other face. The AI reads it for details, but it isn't used in the picture.
-
-In step 2 the app straightens each box photo by itself, so there are no dots to move. It turns the front, left end and top into a box seen slightly from the left, places your strip, bottle or tube in front of the box, and adds soft shadows. It runs on your phone and costs nothing.
-
-If the app can't find the edges of a photo, it uses that photo as you took it and tells you. To fix it, either:
-
-- retake the photo on a dark plain sheet, or
-- crop the photo to the box in your phone's gallery and tick **Photos are cropped to the box** in step 2. The photos are then used as they are.
-
-**Tips for good photos:**
-
-- Use a dark plain sheet (black chart paper) for boxes and silver strips. Use white paper only for dark or amber bottles.
-- Shoot in daylight, without flash.
-- Stand about 1 metre back and zoom in 2×, so the edges look straight.
-
-With only a front photo, the box still looks 3D. The app fills in the end and top from the colours along the edges of the front.
-
-## Promo circular
-
-A landscape visual aid in the style of Indian pharma circulars. On a product page, choose **Promo circular**, then **Edit promo content**.
-
-- **Left side:** the brand name in heavy italic with its suffix on a coloured badge (for example **Doloride** + **SP**), the composition, coloured ingredient tags with short points, the red **In** box with the indications, and your box-and-strip picture.
-- **Right side:** a headline with a coloured banner, the lifestyle photo, and a closing line.
-- **Price ticket:** M.R.P., pack size and case size. **Footer:** your logo, company name, address and the trade-only line.
-- **Colours** match the pack automatically (purple pack, purple theme), or pick one of six themes.
-- **Write copy with AI** drafts the headline, banner, ingredient points and indications from the product's own composition and uses. It never invents indications or studies, and avoids claim words. Read and edit every line.
-- **Photo:** upload your own (one you have the rights to) or **Make a photo with AI** (about ₹7 per photo). AI photos show a made-up person, never your pack, and are labelled "AI-generated image" on the circular.
-- **Claims check:** banned words (cure, guarantee, best…) stop the circular from being downloaded or shared. Strong claims (prevents, rapid, FDA, effective…) need you to tick "I checked these claims" first, and any later edit asks again.
-
-When you connect Supabase, also run `supabase/migrations/0004_promo.sql`.
-
-## Catalogue PDF
-
-On the Catalog screen, press **Catalogue PDF**. Every product becomes a catalogue card, four to a page, in the style of a printed pharma catalogue:
-
-- **Top of each page:** your logo (or company name), the section (for example **Tablets**) and the title **Product Catalogue 2026-27**. The year follows the April–March financial year, and you can change the title.
-- **Bottom of each page:** the division bar (type your division, for example "Ultima Division", or leave it empty to use your company name), page dots and the page number. Like a bound catalogue, odd and even pages are mirrored. The trade-only line is printed on every page.
-- **Order:** pages are grouped by dosage form (Tablets, Capsules, Liquid, Drops, Ointment…) or by therapy category, and sorted A to Z. Each section starts on a new page. You can include all products, only new launches, or only existing ones.
-- **Download PDF** saves one file; **Share PDF** opens the phone's share sheet (WhatsApp, email). The PDF is made on the phone, so it costs nothing.
-
-Products without a photo show a plain sample pack, so add photos for the best result.
-
-## How the catalog sorts itself
-
-The catalog has three rows of filters, and they can be combined:
-
-- **Launch:** New launches or Existing. Tick "This is a new launch" in step 3 (it's on by default for new products; imported products count as existing). After **60 days** a product moves to Existing on its own, and the "New launch" badge disappears from its circular and WhatsApp message. To change the 60 days, edit `NEW_LAUNCH_DAYS` in `src/lib/segments.ts`.
-- **Category:** the therapy category, as before.
-- **Company:** the "Marketed by" company, or "Manufactured by" if there's no marketer. Different spellings such as "Cipla Ltd." and "CIPLA LIMITED" are grouped together.
-
-"Copy catalog list" copies only the products currently shown, so you can send one company's list or just the new launches.
-
-## Project docs
+## Documentation
 
 | Document | What's in it |
 |---|---|
-| [Product plan](docs/PRODUCT_PLAN.md) | Who it's for, problems it solves, features and priorities, key decisions. |
-| [Architecture](docs/ARCHITECTURE.md) | The stack, module map, data model, API contracts, security, deployment. |
+| [Product plan](docs/PRODUCT_PLAN.md) | Who it's for, problems it solves, features and priorities. |
+| [Architecture](docs/ARCHITECTURE.md) | Stack, module map, data model, API contracts, security, deployment. |
 | [Workflows](docs/WORKFLOWS.md) | Every user journey step by step, with failures and recovery. |
-| [Design system](docs/DESIGN_SYSTEM.md) | Logo, colours, fonts, components, states, accessibility rules. |
-| [SEO plan](docs/SEO_PLAN.md) | What's done for search engines, how it was checked, next steps. |
-| [Integrations](docs/INTEGRATIONS.md) | Supabase, Claude, the mock AI, Vercel: settings, limits, costs, status. |
-| [Testing](docs/TESTING.md) | Commands, current results, manual checks, known gaps. |
-| [Roadmap](docs/ROADMAP.md) | What's done, what's left, what comes next. |
-| [Decision records (ADRs)](docs/adr/README.md) | Why the big choices were made: [0001 Next.js + Supabase](docs/adr/0001-nextjs-supabase.md), [0002 demo mode](docs/adr/0002-demo-mode-browser-storage.md), [0003 provider-independent AI](docs/adr/0003-provider-independent-ai.md), [0004 on-device pack shots](docs/adr/0004-on-device-pack-shots.md), [0005 landing at `/`, app at `/catalog`](docs/adr/0005-public-landing-and-catalog-route.md), [0006 automatic straightening and the catalogue-style picture](docs/adr/0006-automatic-straightening-and-catalogue-product-picture.md). |
+| [Design system](docs/DESIGN_SYSTEM.md) | Logo, colours, fonts, components, accessibility. |
+| [Integrations](docs/INTEGRATIONS.md) | Supabase, Gemini via OpenRouter, Claude, the mock, the demo passcode, Vercel. |
+| [SEO plan](docs/SEO_PLAN.md) | Search-engine setup and checks. |
+| [Testing](docs/TESTING.md) | Commands, results, manual checks, known gaps. |
+| [Roadmap](docs/ROADMAP.md) | Done, in progress, next. |
+| [Decision records](docs/adr/README.md) | Why the big choices were made (ADRs 0001–0006). |
+
+---
 
 ## Good to know
 
-- The compliance check covers common problems, not the full law. The licence holder stays responsible for the final circular.
-- The AI never replaces checking the carton: the user must tick "I checked these details" before continuing, and fields the AI was unsure about are marked **Check this**.
-- Schedule H, H1 and X products get a warning to share them only with doctors, chemists and the licensed trade.
+- **The licence holder stays responsible** for every circular. The compliance check catches common problems, not the full law.
+- **AI never replaces checking the carton.** Fields the AI was unsure about are marked **Check this**, and the composition is always flagged.
+- **AI never draws the product.** Pack pictures come only from your photos; AI photos show a made-up scene and are labelled.
+- **Schedule H, H1 and X** products carry a warning to share them only with doctors, chemists and the licensed trade.
+- **Not yet done:** real sign-in on the live site (Supabase), end-to-end browser tests, and testing on real phones with real cartons. See the [Roadmap](docs/ROADMAP.md).
