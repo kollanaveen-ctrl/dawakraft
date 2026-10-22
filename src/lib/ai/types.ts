@@ -6,7 +6,7 @@ import { AI_CATEGORY_BATCH, CATEGORIES, FORMS, IMAGE_ROLES, MAX_AI_IMAGES, SCHED
 
 // ---------- Errors ----------
 
-export type AiErrorCode = "not_configured" | "rate_limited" | "image_rejected" | "invalid_json" | "refused" | "failed";
+export type AiErrorCode = "not_configured" | "rate_limited" | "image_rejected" | "invalid_json" | "refused" | "failed" | "out_of_credits";
 
 export class AiError extends Error {
   constructor(public readonly code: AiErrorCode, message: string) {

@@ -10,6 +10,7 @@ const SORTS_PER_10_MIN = 10;
 
 function statusOf(code: AiError["code"]): number {
   if (code === "rate_limited") return 429;
+  if (code === "out_of_credits") return 402;
   if (code === "not_configured") return 503;
   return 502;
 }

@@ -114,7 +114,7 @@ describe("provider registry", () => {
   it("honours AI_PROVIDER and treats unknown values as off (a typo never turns on a paid provider)", () => {
     expect(selectedProviderId({ AI_PROVIDER: "mock", ANTHROPIC_API_KEY: REAL_KEY })).toBe("mock");
     expect(selectedProviderId({ AI_PROVIDER: " OFF " })).toBe("off");
-    expect(selectedProviderId({ AI_PROVIDER: "gemini" })).toBe("off");
+    expect(selectedProviderId({ AI_PROVIDER: "gemeni" })).toBe("off");
     expect(selectedProviderId({ AI_PROVIDER: "of", ANTHROPIC_API_KEY: REAL_KEY })).toBe("off");
   });
 

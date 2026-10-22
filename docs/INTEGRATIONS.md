@@ -11,6 +11,7 @@ Prices and free-tier limits change often. Where a number below isn't taken from 
 |---|---|---|
 | **Supabase** | Database, email sign-in, photo storage | Code ready, **not connected** (no keys). The app runs in demo mode. |
 | **Anthropic Claude** | Reads the carton; sorts imported products into categories | Code ready, **no key yet**. |
+| **Google Gemini via OpenRouter** | Reads the carton; sorts categories (Google models only) | **Active** when `OPENROUTER_API_KEY` is set (and no Claude key), or with `AI_PROVIDER=gemini`. |
 | **Mock AI provider** | Free, labelled sample answers | **Active by default** while there is no Claude key. |
 | **Vercel** | Hosting | **Live** at https://dawakraft.vercel.app, auto-deploys from GitHub `main`. |
 | Google Fonts (via `next/font`) | Bricolage Grotesque, Instrument Sans, JetBrains Mono | Downloaded at build time and served from the site itself. |
@@ -25,7 +26,10 @@ Set them in `.env.local` on your computer and in **Vercel → Project → Settin
 | `NEXT_PUBLIC_SUPABASE_URL` | `src/lib/config.ts`, Supabase clients, `src/proxy.ts` | No | Your project URL, e.g. `https://abcd.supabase.co`. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | same | No (safe in the browser; row-level security protects data) | The publishable key (older projects: the "anon" key). |
 | `ANTHROPIC_API_KEY` | `src/lib/ai/providers/anthropic.ts`, `src/lib/ai/index.ts` | **Yes. Never prefix with `NEXT_PUBLIC_`.** | Claude API key. |
-| `AI_PROVIDER` | `src/lib/ai/index.ts` | No | `anthropic`, `mock` or `off`. See below. |
+| `OPENROUTER_API_KEY` | `src/lib/ai/providers/gemini.ts`, `src/lib/ai/index.ts` | **Yes. Never prefix with `NEXT_PUBLIC_`; never log or commit it.** | OpenRouter key for Google Gemini. |
+| `OPENROUTER_MODEL` | `src/lib/ai/providers/gemini.ts` | No | Optional box-reading model. Must start with `google/`, otherwise the default `google/gemini-3.7-flash` is used. |
+| `OPENROUTER_CATEGORY_MODEL` | same | No | Optional category model. Must start with `google/`, otherwise the default `google/gemini-3.5-flash-lite` is used. |
+| `AI_PROVIDER` | `src/lib/ai/index.ts` | No | `anthropic`, `gemini`, `mock` or `off`. See below. |
 | `NEXT_PUBLIC_SITE_URL` | `src/lib/site.ts` | No | Public address for canonical links, sitemap and share cards. Default `https://dawakraft.vercel.app`. |
 
 A value that is empty or still contains `your-`, `your_`, `example`, `placeholder` or `xxxx` counts as **not set** (`isRealValue` in `config.ts`). That is how the copied `.env.example` placeholders keep the app in demo mode.
@@ -34,7 +38,8 @@ A value that is empty or still contains `your-`, `your_`, `example`, `placeholde
 
 | Value | Result |
 |---|---|
-| unset | Claude if `ANTHROPIC_API_KEY` is real, otherwise the **mock**. |
+| unset | Claude if `ANTHROPIC_API_KEY` is real, else Gemini if `OPENROUTER_API_KEY` is real, otherwise the **mock**. |
+| `gemini` | Google Gemini via OpenRouter. If the key is missing, the AI routes answer `not_configured`. |
 | `anthropic` | Claude. If the key is missing, the AI routes answer `not_configured` (no quiet fallback to samples). |
 | `mock` | The mock, even if a key exists. |
 | `off` | AI switched off: both AI routes answer `not_configured`. |
@@ -76,6 +81,29 @@ Upper/lower case and surrounding spaces are ignored.
 
 ---
 
+## Google Gemini via OpenRouter (active)
+
+**Purpose:** the same two routes as Claude, served by Google Gemini (`providers/gemini.ts`).
+
+**Rules (enforced in the code and the tests):**
+
+- **Google models only.** Defaults: `google/gemini-3.7-flash` for box reading, `google/gemini-3.5-flash-lite` for categories. `OPENROUTER_MODEL` / `OPENROUTER_CATEGORY_MODEL` may override them, but any value not starting with `google/` is ignored.
+- **Only through OpenRouter:** `POST https://openrouter.ai/api/v1/chat/completions` with `Authorization: Bearer $OPENROUTER_API_KEY`. Google AI Studio or Vertex are never called directly.
+- Every request carries `"provider": { "only": ["google-vertex", "google-ai-studio"], "allow_fallbacks": false, "require_parameters": true }`, so OpenRouter can't route to another vendor.
+- The key lives only in the server environment and is never logged or sent to the browser.
+
+**How it's called:** one user message with the photos as `image_url` data URLs followed by `boxReadPrompt()`; structured output via `response_format: json_schema` (`strict: true`) generated from the zod schemas with `z.toJSONSchema`; the reply is parsed and validated again with zod. `max_tokens` 8000 for reading (Gemini thinks first; a smaller cap can return no content) and 16000 for sorting; 90-second timeout per attempt. Each call logs provider, model, latency, tokens and OpenRouter's reported cost to the **server** log.
+
+**Errors:** 402 (out of credits) and 403 (key budget limit) → `out_of_credits` (HTTP 402; the app says "The AI credits have run out…"), no retry. 429 and 5xx → up to 3 retries with exponential backoff (1 s, 2 s, 4 s, or the `Retry-After` header), then `rate_limited` (429) or `failed`. 400 → `failed` (OpenRouter's message goes to the server log only). Empty content or `finish_reason: "length"` → `invalid_json`.
+
+**Cost:** OpenRouter returns the real cost of each call in `usage.cost` (USD), which becomes `meta.usage.estCostUsd`. In testing, a short text call cost **$0.00** as reported by OpenRouter for this key. Box readings use `gemini-3.7-flash` at **$0.75 per million input tokens and $3.75 per million output tokens** (check current OpenRouter prices).
+
+**Cost controls:** `paid: true`, so the same sign-in (or demo mode on your own computer only) and per-user rate limits apply as for Claude. Set a credit limit on the OpenRouter key.
+
+**Status:** code ready and covered by tests with a stubbed `fetch` (no test calls the real API). Accuracy on real cartons still needs checking.
+
+---
+
 ## Mock provider
 
 **Purpose:** let the whole wizard and import run with no key and no cost, without pretending to be real (`providers/mock.ts`).
@@ -101,11 +129,11 @@ Upper/lower case and surrounding spaces are ignored.
 
 ## Free alternatives for AI reading
 
-These are **not wired in**. They are options if Claude's cost is a concern.
+Except where noted, these are **not wired in**. They are options if Claude's cost is a concern.
 
 | Option | What it offers | Trade-offs (honest) |
 |---|---|---|
-| **Google Gemini API, free tier** | Vision models that can read images and return JSON; a free tier with per-minute and per-day request limits (check current terms). | Free-tier data may be used by Google to improve its products (check current terms) — think about whether carton photos are acceptable to share on those terms. Limits can change. Accuracy on small, curved or glossy carton print must be measured on real cartons before trusting it; the evidence/quote rules must hold. |
+| **Google Gemini API, free tier** (now wired in via OpenRouter, see above) | Vision models that can read images and return JSON; a free tier with per-minute and per-day request limits (check current terms). | Free-tier data may be used by Google to improve its products (check current terms) — think about whether carton photos are acceptable to share on those terms. Limits can change. Accuracy on small, curved or glossy carton print must be measured on real cartons before trusting it; the evidence/quote rules must hold. |
 | **Hugging Face** (Inference Providers, or a self-run open vision model) | Open vision-language and OCR models; a small free monthly credit (check current terms), or run a model on your own machine. | Free credit is small and rate-limited; free hosted models can be slow or cold-start. Open models are generally weaker at following a strict JSON schema and at reading tiny print, so more fields would come back wrong or empty. Self-hosting needs a GPU. |
 
 Whatever is chosen, the app's safety nets stay: every field must be confirmed by a person, composition is always flagged, and the front-strength cross-check still blocks a mismatch.
@@ -115,7 +143,7 @@ Whatever is chosen, the app's safety nets stay: every field must be confirmed by
 From the comment at the top of `src/lib/ai/index.ts`:
 
 1. Write `src/lib/ai/providers/<name>.ts` exporting an `AiProvider` (see `src/lib/ai/types.ts`) with `id`, `paid`, `readBox()` and `categorize()`.
-2. `readBox()` must return data shaped like `BoxReadingSchema`: every field with `value`, `confidence` (`high`/`low`), `source` (`front`/`side`/`top`/`other` or null) and an exact `quote` from the photo, plus a truthful `meta` (`provider`, `model`, `mock: false`, `latencyMs`, optional `usage`). Reuse `boxReadPrompt()` from `box-read.ts`. Throw `AiError` with the right code (`not_configured`, `rate_limited`, `image_rejected`, `invalid_json`, `refused`, `failed`).
+2. `readBox()` must return data shaped like `BoxReadingSchema`: every field with `value`, `confidence` (`high`/`low`), `source` (`front`/`side`/`top`/`other` or null) and an exact `quote` from the photo, plus a truthful `meta` (`provider`, `model`, `mock: false`, `latencyMs`, optional `usage`). Reuse `boxReadPrompt()` from `box-read.ts`. Throw `AiError` with the right code (`not_configured`, `rate_limited`, `image_rejected`, `invalid_json`, `refused`, `failed`, `out_of_credits`).
 3. Set **`paid` correctly.** `true` keeps sign-in and the rate limits in front of it; a free-tier API that can still run out or bill you should be `true`.
 4. Add its id to `PROVIDER_IDS` and a `case` in `pick()` in `index.ts` (check its key with `isRealValue`, and return `not_configured` when missing). Decide whether the unset default should ever choose it.
 5. Add its key to `.env.example` (server-only, no `NEXT_PUBLIC_`).

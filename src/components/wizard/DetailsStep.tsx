@@ -42,6 +42,8 @@ const AI_ERRORS: Record<string, string> = {
   rate_limited: "AI is busy right now. Wait a minute, then try again.",
   image_rejected: "One photo couldn't be used. Try a different photo.",
   invalid_json: "The AI reply couldn't be read. Try again.",
+  out_of_credits:
+    "The AI credits have run out. Type the details from the carton, and ask the organisers for more credits.",
 };
 const AI_FALLBACK = "Couldn't read the box. Try again, or type the details.";
 

@@ -16,6 +16,7 @@ const STATUS: Record<AiError["code"], number> = {
   invalid_json: 502,
   refused: 422,
   failed: 502,
+  out_of_credits: 402,
 };
 
 export async function POST(request: Request) {

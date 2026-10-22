@@ -17,6 +17,8 @@ const SORT_ERRORS: Record<string, string> = {
   not_signed_in: "Your sign-in expired. Reload the page and sign in again.",
   demo_online: "AI sorting is switched off on the online demo until sign-in is added. You can still import; missing categories become Other.",
   rate_limited: "AI is busy right now. Wait a minute, then try again.",
+  out_of_credits:
+    "The AI credits have run out. Type the details from the carton, and ask the organisers for more credits.",
 };
 
 /** Status after sorting. Sample (mock) categories are labelled so nobody mistakes them for an AI reading. */
