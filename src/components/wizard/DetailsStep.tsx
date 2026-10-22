@@ -9,6 +9,7 @@ import {
   IMAGE_ROLES,
   MAX_AI_IMAGES,
   SCHEDULES,
+  USES_MAX,
   type FieldKey,
   type ImageRole,
 } from "@/lib/constants";
@@ -122,7 +123,9 @@ export function DetailsStep({
       ))}
     </select>
   );
-  const ev = (k: FieldKey) => (k === "scheme" || k === "highlight" ? null : evidenceLine(last.evidence[k], last.mock));
+  // Scheme, highlight and uses are typed by the user, never read by the AI.
+  const ev = (k: FieldKey) =>
+    k === "scheme" || k === "highlight" || k === "uses" ? null : evidenceLine(last.evidence[k], last.mock);
 
   function applyReading(data: AiReadResult, mock: boolean) {
     const merged = mergeAiResult(fields, data);
@@ -181,6 +184,9 @@ export function DetailsStep({
         <Field k="category" label="Category" low={low} evidence={ev("category")}>{select("category", CATEGORIES)}</Field>
         <Field k="composition" low={low} full evidence={ev("composition")} label={<>Composition <span className="hint">Each active ingredient with its strength, as printed</span></>}>
           {text("composition")}
+        </Field>
+        <Field k="uses" low={low} full label={<>Uses (indications) <span className="hint">Optional. As in the approved leaflet, e.g. Hypertension, Angina. Shown on the catalogue card.</span></>}>
+          {text("uses", { maxLength: USES_MAX, placeholder: "Hypertension, Angina" })}
         </Field>
         <label className="field full ai-strength">
           <span>

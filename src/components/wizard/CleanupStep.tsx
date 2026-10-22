@@ -1,10 +1,10 @@
 "use client";
-// Step 2. A box is straightened face by face from its corners (BoxCleanup); a bottle, tube or strip,
-// or the saved picture when editing, goes through background removal (FlatCleanup, below).
+// Step 2. A box is straightened automatically and shown with its strip or bottle (BoxCleanup); a
+// bottle, tube or strip on its own, or the saved picture when editing, goes through background
+// removal (FlatCleanup, below).
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { BoxFace, FaceCanvases, FaceCorners, FaceRotations } from "@/lib/faces";
+import type { FaceCanvases, FaceRotations, PackKind } from "@/lib/faces";
 import { buildPackImage, type PackResult } from "@/lib/image/packshot";
-import type { Quad } from "@/lib/image/perspective";
 import { BoxCleanup } from "./BoxCleanup";
 
 const SLIDER_DEBOUNCE_MS = 180;
@@ -27,11 +27,16 @@ type FlatProps = {
 };
 
 type Props = FlatProps & {
-  /** Bottle, tube or strip: no corners, background removal instead. */
+  /** Bottle, tube or strip on its own: background removal instead of the box. */
   notABox: boolean;
-  corners: FaceCorners;
   onNotABox: (on: boolean) => void;
-  onCorners: (face: BoxFace, quad: Quad) => void;
+  /** The strip, bottle or tube photo placed in front of the box. */
+  pack: File | null;
+  packKind: PackKind;
+  onPackKind: (kind: PackKind) => void;
+  /** Box photos already cropped to the box: skip edge finding. */
+  cropped: boolean;
+  onCropped: (on: boolean) => void;
   /** Called with the straightened faces. Must be stable (a state setter). */
   onFaceCanvases: (faces: FaceCanvases) => void;
 };
@@ -51,30 +56,34 @@ function NotABoxToggle({ checked, onChange }: { checked: boolean; onChange: (on:
     <label className="confirm">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>
-        Not a box (bottle, tube, strip)
+        Not a box (bottle, tube or strip on its own)
         <br />
-        <span className="muted">Skips the corners and removes the background instead.</span>
+        <span className="muted">Removes the background around the front photo instead of building a box.</span>
       </span>
     </label>
   );
 }
 
 export function CleanupStep(props: Props) {
-  const { notABox, corners, onNotABox, onCorners, onFaceCanvases, ...flat } = props;
-  const { front, side, top, rots, threeD, onRotate, onThreeD, onCut } = flat;
-  // New photos only: a saved picture is already the finished pack shot, so it has no corners.
+  const { notABox, onNotABox, pack, packKind, onPackKind, cropped, onCropped, onFaceCanvases, ...flat } = props;
+  const { front, side, top, rots, threeD, tol, onRotate, onThreeD, onTol, onCut } = flat;
+  // New photos only: a saved picture is already the finished product picture.
   if (!(front instanceof File)) return <FlatCleanup {...flat} />;
   const toggle = <NotABoxToggle checked={notABox} onChange={onNotABox} />;
   if (notABox) return <FlatCleanup {...flat} toggle={toggle} />;
   return (
     <BoxCleanup
-      files={{ front, side, top }}
+      files={{ front, side, top, pack }}
+      packKind={packKind}
+      cropped={cropped}
+      onCropped={onCropped}
       rots={rots}
       threeD={threeD}
-      corners={corners}
+      tol={tol}
       onRotate={onRotate}
       onThreeD={onThreeD}
-      onCorners={onCorners}
+      onTol={onTol}
+      onPackKind={onPackKind}
       onCut={onCut}
       onFaceCanvases={onFaceCanvases}
       notABoxToggle={toggle}

@@ -8,6 +8,7 @@ export type ProductRow = {
   id: string;
   name: string;
   composition: string;
+  uses: string;
   form: string;
   pack_size: string;
   mrp: number | string | null;
@@ -48,6 +49,7 @@ export function toProduct(r: ProductRow): Product {
     id: r.id,
     name: r.name ?? "",
     composition: r.composition ?? "",
+    uses: r.uses ?? "",
     form: r.form ?? "",
     packSize: r.pack_size ?? "",
     mrp: parseMrp(r.mrp),
@@ -72,6 +74,7 @@ export function toProductRow(p: Product): ProductRow {
     id: p.id,
     name: p.name.trim(),
     composition: p.composition.trim(),
+    uses: (p.uses ?? "").trim(),
     form: p.form,
     pack_size: p.packSize.trim(),
     mrp: p.mrp,
@@ -133,6 +136,7 @@ export const EMPTY_DRAFT: DraftFields = {
   name: "",
   category: "",
   composition: "",
+  uses: "",
   form: "",
   packSize: "",
   mrp: "",
@@ -149,6 +153,7 @@ export function productToDraft(p: Product): DraftFields {
     name: p.name,
     category: p.category,
     composition: p.composition,
+    uses: p.uses ?? "",
     form: p.form,
     packSize: p.packSize,
     mrp: p.mrp == null ? "" : String(p.mrp),

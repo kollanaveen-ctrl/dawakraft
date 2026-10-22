@@ -1,9 +1,10 @@
-import { CATEGORIES, FORMS, IMPORT_MAX_ROWS } from "./constants";
+import { CATEGORIES, FORMS, IMPORT_MAX_ROWS, USES_MAX } from "./constants";
 import { parseMrp } from "./format";
 
 export type ImportRow = {
   name: string;
   composition?: string;
+  uses?: string;
   form?: string;
   packSize?: string;
   mrp?: number | null;
@@ -20,6 +21,9 @@ const COLMAP: Record<string, ImportKey> = {
   "product name": "name",
   composition: "composition",
   generic: "composition",
+  uses: "uses",
+  indications: "uses",
+  indication: "uses",
   form: "form",
   "dosage form": "form",
   pack: "packSize",
@@ -72,6 +76,7 @@ export function parseCSV(text: string): string[][] {
 const LIMITS: Partial<Record<ImportKey, number>> = {
   name: 200,
   composition: 500,
+  uses: USES_MAX,
   packSize: 120,
   manufacturer: 200,
 };

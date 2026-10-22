@@ -5,14 +5,20 @@ import type { ProductFields } from "../types";
 
 export type Ctx = CanvasRenderingContext2D;
 export type Drawable = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
-type Family = "display" | "body" | "mono";
+export type Family = "display" | "body" | "mono" | "serif";
 
 const FALLBACK: Record<Family, string> = {
   display: '"Helvetica Neue", Arial, sans-serif',
   body: '"Segoe UI", Arial, sans-serif',
   mono: "Menlo, monospace",
+  serif: "Georgia, serif",
 };
-const CSS_VAR: Record<Family, string> = { display: "--f-display", body: "--f-body", mono: "--f-mono" };
+const CSS_VAR: Record<Family, string> = {
+  display: "--f-display",
+  body: "--f-body",
+  mono: "--f-mono",
+  serif: "--f-serif",
+};
 
 let families: Record<Family, string> | null = null;
 
@@ -21,13 +27,13 @@ function family(f: Family): string {
   if (!families && typeof document !== "undefined") {
     const style = getComputedStyle(document.documentElement);
     const read = (k: Family) => style.getPropertyValue(CSS_VAR[k]).trim() || FALLBACK[k];
-    families = { display: read("display"), body: read("body"), mono: read("mono") };
+    families = { display: read("display"), body: read("body"), mono: read("mono"), serif: read("serif") };
   }
   return families ? families[f] : FALLBACK[f];
 }
 
-export function font(weight: number, px: number, fam: Family = "display"): string {
-  return `${weight} ${px}px ${family(fam)}`;
+export function font(weight: number, px: number, fam: Family = "display", italic = false): string {
+  return `${italic ? "italic " : ""}${weight} ${px}px ${family(fam)}`;
 }
 
 export async function fontsReady(): Promise<void> {
@@ -37,6 +43,10 @@ export async function fontsReady(): Promise<void> {
       document.fonts.load(font(500, 22, "body")),
       document.fonts.load(font(600, 22, "body")),
       document.fonts.load(font(500, 20, "mono")),
+      document.fonts.load(font(400, 30, "serif")),
+      document.fonts.load(font(600, 30, "serif")),
+      document.fonts.load(font(700, 30, "serif")),
+      document.fonts.load(font(400, 30, "serif", true)),
     ]);
   } catch {
     // Fonts are a nicety: the canvas falls back to system fonts.
@@ -105,14 +115,15 @@ export function pill(ctx: Ctx, text: string, xRight: number, yMid: number, bg: s
   ctx.textAlign = "left";
 }
 
-function size(img: Drawable): [number, number] {
+/** Natural pixel size of an image, canvas or bitmap. */
+export function imageSize(img: Drawable): [number, number] {
   if (img instanceof HTMLImageElement) return [img.naturalWidth, img.naturalHeight];
   return [img.width, img.height];
 }
 
 /** Draw `img` scaled to fit inside the box, centred. */
 export function drawFit(ctx: Ctx, img: Drawable, x: number, y: number, w: number, h: number) {
-  const [iw, ih] = size(img);
+  const [iw, ih] = imageSize(img);
   if (!iw || !ih) return;
   const s = Math.min(w / iw, h / ih);
   const dw = iw * s;

@@ -66,6 +66,19 @@ export function scaleQuad(quad: Quad, sx: number, sy: number): Quad {
   return mapQuad(quad, (p) => ({ x: p.x * sx, y: p.y * sy }));
 }
 
+/** Share of a width × height photo covered by the quad (shoelace area, any corner order). */
+export function quadShare(quad: Quad, width: number, height: number): number {
+  if (!(width > 0 && height > 0)) return 0;
+  const q = orderQuad(quad);
+  let twice = 0;
+  for (let k = 0; k < 4; k++) {
+    const a = q[k];
+    const b = q[(k + 1) % 4];
+    twice += a.x * b.y - b.x * a.y;
+  }
+  return Math.abs(twice) / 2 / (width * height);
+}
+
 /** Solve A·x = b by Gaussian elimination with partial pivoting. Null when A is (nearly) singular. */
 function solve(a: number[][], b: number[]): number[] | null {
   const n = b.length;

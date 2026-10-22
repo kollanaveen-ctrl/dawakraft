@@ -38,6 +38,7 @@ export const SCHEDULES = ["None", "H", "H1", "X", "G"] as const;
 export const BRAND_COLOURS = ["#0B7A63", "#1F4E8C", "#7A1F4E", "#B4461E", "#4B3A8F", "#0F1F24"];
 
 export const TEMPLATES = [
+  ["catalog", "Catalogue card"],
   ["clean", "Clean"],
   ["band", "Side band"],
   ["spotlight", "Spotlight"],
@@ -68,6 +69,7 @@ export const FIELD_KEYS = [
   "name",
   "category",
   "composition",
+  "uses",
   "form",
   "packSize",
   "mrp",
@@ -106,6 +108,7 @@ export type ImageRole = (typeof IMAGE_ROLES)[number];
 export const SAMPLE = {
   name: "Exampol 650",
   composition: "Paracetamol IP 650 mg",
+  uses: "Fever, Headache, Body ache",
   form: "Tablet",
   packSize: "10 × 15 tablets",
   mrp: 32.5,
@@ -120,5 +123,7 @@ export const SAMPLE = {
 
 export const MAX_AI_IMAGES = 4;
 export const HIGHLIGHT_MAX = 28;
+/** Same limit as the products.uses column. */
+export const USES_MAX = 140;
 export const IMPORT_MAX_ROWS = 500;
 export const AI_CATEGORY_BATCH = 150;

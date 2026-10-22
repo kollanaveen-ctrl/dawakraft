@@ -76,7 +76,7 @@ export function matchesSegment(p: Product, f: SegmentFilter, now = Date.now()): 
   if (f.company !== "All" && companyKey(companyName(p)) !== f.company) return false;
   if (f.launch !== "all" && isNewLaunch(p, now) !== (f.launch === "new")) return false;
   if (!f.query) return true;
-  return [p.name, p.composition, p.manufacturer, p.marketedBy, p.category].join(" ").toLowerCase().includes(f.query);
+  return [p.name, p.composition, p.uses, p.manufacturer, p.marketedBy, p.category].join(" ").toLowerCase().includes(f.query);
 }
 
 /**

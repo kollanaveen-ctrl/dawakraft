@@ -17,6 +17,7 @@ import { useToast } from "./Toast";
 
 function specRows(p: Product): [string, string][] {
   const rows: [string, string][] = [
+    ["Uses", p.uses ?? ""],
     ["Dosage form", p.form],
     ["Pack size", p.packSize],
     ["MRP", p.mrp ? mrpText(p.mrp) : ""],

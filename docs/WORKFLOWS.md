@@ -22,7 +22,7 @@ Each journey below lists where it starts, what the person gives the app, what ha
 
 ```mermaid
 flowchart LR
-  S1[1 Photos<br/>label Front / Side / Top] --> S2[2 Clean up<br/>corner dots, straighten,<br/>3D pack shot]
+  S1[1 Photos<br/>label Front / Left end / Top<br/>/ Strip, bottle or tube] --> S2[2 Clean up<br/>automatic straightening,<br/>box + strip picture]
   S2 --> S3[3 Details<br/>Read box with AI,<br/>confirm every field]
   S3 -->|"ticked 'I checked these details'<br/>and brand name filled"| S4[4 Check<br/>compliance list]
   S4 -->|"no red items"| S5[5 Circular<br/>pick layout, save]
@@ -33,24 +33,25 @@ flowchart LR
 ### Step 1: Photos (`PhotosStep.tsx`)
 
 1. Tap **Take photo** (opens the back camera on a phone) or **Choose from gallery** (several at once). Only image files are kept.
-2. Each thumbnail has a drop-down: **Front**, **Side** (the side to the right of the front), **Top** or **Other side**. The first photo starts as Front. There is one Front, at most one Side and one Top (`src/lib/faces.ts`).
-3. The line next to the buttons says "· 3D pack shot on" once a Side or Top is marked, otherwise "· flat front photo".
-4. ✕ removes a photo. Changing photos or roles clears any corners, rotations and the prepared picture, so step 2 starts fresh.
+2. Each thumbnail has a drop-down: **Front**, **Left end** (the narrow side with the brand name, shown on the left as in a printed catalogue), **Top**, **Strip / bottle / tube** or **Other side**. The first photo starts as Front. There is one Front and at most one of each other role (`src/lib/faces.ts`).
+3. When a Strip / bottle / tube photo is marked, a drop-down asks what it shows: **Strip (blister or alu-alu)**, **Bottle or vial** or **Tube**. The line next to the buttons says "· box with its strip or bottle", otherwise "· box only".
+4. The advice on screen: one pack per photo, a dark plain sheet (white only for dark or amber bottles), daylight without flash, stand back and zoom in.
+5. ✕ removes a photo. Changing photos or roles clears rotations and the prepared picture, so step 2 starts fresh.
 
 **Next is blocked** ("Add a photo first") until there is at least one photo.
 
-### Step 2: Clean up, corner dots and straightening (`CleanupStep.tsx`, `BoxCleanup.tsx`, `CornerEditor.tsx`)
+### Step 2: Clean up, automatic straightening (`CleanupStep.tsx`, `BoxCleanup.tsx`)
 
-For a **box** (the default):
+For a **box** (the default), there is nothing to place by hand ([ADR 0006](adr/0006-automatic-straightening-and-catalogue-product-picture.md)):
 
-1. Each marked face (Front, Side, Top) is loaded upright, at most 1600 px on its long side (`src/lib/image/straighten.ts`).
-2. The app **suggests four corners** by finding the carton against the background (`src/lib/image/corners.ts`). If it can't, the dots sit on a rectangle 8% inside the photo edges and the status says "Couldn't find the box edges on the … photo. Drag the four dots onto its corners."
-3. The person drags each dot onto a corner. A line joins the dots, and a small **Straightened** preview updates live. With a keyboard, each dot is a button: arrow keys move it, Shift + arrow moves it five times as far. **Reset corners** puts the dots back on the suggestion.
-4. **Front / Side / Top** tabs switch between faces. **Rotate … 90°** turns the shown face (and finds its corners again).
-5. A quarter-second after the last change, each face is straightened to a flat rectangle (long side 1200 px) and, if a Side or Top exists and **Show as a 3D pack** is ticked, the faces are wrapped onto a box seen at an angle with a soft shadow (`src/lib/image/packshot.ts`).
-6. If the side and top photos imply box depths more than 20% apart, a warning appears: "Side and top photos disagree on the box depth. Check their corners." (`depthConsistency` in `perspective.ts`).
+1. Each marked face (Front, Left end, Top) is loaded upright, at most 1600 px on its long side (`src/lib/image/straighten.ts`).
+2. The app **finds the carton's corners** against the background (`src/lib/image/corners.ts`) and straightens the face to a flat rectangle (long side 1200 px). A detected face is trusted only if it covers at least 20% of its photo (front) or 5% (end, top) (`quadShare` in `perspective.ts`).
+3. If it isn't trusted, the background is trimmed instead when that keeps the box, else the photo is used as photographed, and the status says "Couldn't find the edges of the … photo, so it's used as photographed. Retake it on a dark plain sheet, or crop it to the box in your phone's gallery and tick "Photos are cropped to the box"."
+4. **Photos are cropped to the box** uses the box photos exactly as they are. **Rotate … 90°** buttons turn the front, left end, top or strip/bottle photo.
+5. With **Show the box in 3D** ticked (default), the faces are drawn as a box seen slightly from the left with a sliver of the top, like the printed catalogue (`src/lib/image/packshot.ts`). Without a Left end or Top photo, those panels are filled in from the front's edge colours.
+6. The **strip, bottle or tube** photo is cut out by flood-fill (**How much background to remove** slider, 12–120, default 46) and placed in front of the box's right end (`src/lib/image/companion.ts`): a strip stands taller than the box, slightly tilted; a bottle stands level; a tube lies across the front. If it can't be cut out it is left out and the status says so.
 
-For a **bottle, tube or strip**, tick **Not a box (bottle, tube, strip)**. Corners are skipped and the background is removed by flood-fill from the photo edges instead (`src/lib/image/cutout.ts`), with a **How much to remove** slider (12–120, default 46) and a **Remove the background** tick box.
+For a **bottle, tube or strip on its own**, tick **Not a box (bottle, tube or strip on its own)**. The background is removed by flood-fill from the photo edges instead (`src/lib/image/cutout.ts`), with the slider and a **Remove the background** tick box.
 
 When **editing** without new photos, the saved picture is shown as is: "Using the saved photo. Add new photos in step 1 to replace it."
 
@@ -139,7 +140,7 @@ The page ends with: "This check covers common problems, not the full law. The li
 
 ### Step 5: Circular and save (`CircularStep.tsx`, `src/lib/circular/`)
 
-1. The circular is drawn on the phone at 1080 × 1350 with the company branding, in one of three layouts: **Clean**, **Side band**, **Spotlight**.
+1. The circular is drawn on the phone at 1080 × 1350 with the company branding, in one of four layouts: **Catalogue card** (a copy of the printed catalogue card, with the optional Uses line), **Clean**, **Side band**, **Spotlight**.
 2. If "This is a new launch" is unticked, a "New launch" highlight is dropped from the circular.
 3. **Save to catalog**:
    - Re-checks that the details are still confirmed and have no red items (people can jump back after passing step 4). If not: "Something changed since the check. Fix the red items first." and the wizard returns to step 3 or 4.
@@ -154,7 +155,8 @@ The page ends with: "This check covers common problems, not the full law. The li
 | What happens | What the person sees | Recovery |
 |---|---|---|
 | A photo can't be opened | "A photo couldn't be opened. Go back, remove it, and choose a JPG or PNG photo." | Remove it in step 1 and choose another. |
-| Corner dots cross into a non-box shape | "The dots on the front photo don't make a box shape. Drag them back onto its corners." | Drag the dots, or press Reset corners. |
+| Box edges not found (e.g. a white carton on white paper) | "Couldn't find the edges of the … photo, so it's used as photographed. …" | Retake on a dark plain sheet, or crop the photo in the gallery and tick "Photos are cropped to the box". |
+| Strip or bottle can't be cut out | "Couldn't separate the strip or bottle from its background, so it's left out for now. …" | Move the slider, or retake on a dark plain sheet. |
 | Background removal fails (not a box) | "Couldn't separate the box from the background. Lower the slider, or retake the photo on a plainer surface." | Move the slider or retake the photo. |
 | AI not set up (`not_configured`) | "AI reading isn't set up yet. Type the details from the carton." | Type the details, or add the Claude key ([INTEGRATIONS](INTEGRATIONS.md)). |
 | Paid AI on the online demo (no sign-in) | "AI reading is switched off on the online demo until sign-in is added. Type the details from the carton." | Type the details; connect Supabase. |
@@ -314,7 +316,7 @@ sequenceDiagram
 
 ## 8. Public home page
 
-`/` is a public landing page (`src/app/page.tsx`): hero with a live circular cycling through the three layouts (paused when the person prefers reduced motion), "How it works", features, who it is for, FAQ, and **Try the free demo** / **Open the app** links to `/catalog`. See [SEO_PLAN](SEO_PLAN.md) and [ADR 0005](adr/0005-public-landing-and-catalog-route.md).
+`/` is a public landing page (`src/app/page.tsx`): hero with a live circular cycling through the layouts (paused when the person prefers reduced motion), "How it works", features, who it is for, FAQ, and **Try the free demo** / **Open the app** links to `/catalog`. See [SEO_PLAN](SEO_PLAN.md) and [ADR 0005](adr/0005-public-landing-and-catalog-route.md).
 
 ---
 

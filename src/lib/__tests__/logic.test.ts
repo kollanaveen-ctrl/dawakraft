@@ -148,7 +148,7 @@ describe("colour helpers", () => {
 describe("database mapping", () => {
   it("round-trips a product row", () => {
     const row: ProductRow = {
-      id: "1", name: "A", composition: "", form: "Tablet", pack_size: "10", mrp: "12.50", schedule: "H", manufacturer: "M",
+      id: "1", name: "A", composition: "", uses: "", form: "Tablet", pack_size: "10", mrp: "12.50", schedule: "H", manufacturer: "M",
       marketed_by: "", storage: "", category: "", scheme: "", highlight: "", template: "weird", image_path: null, example: false, launched_at: null,
       created_at: "2026-10-20T10:00:00.000Z", updated_at: "2026-10-20T10:00:00.000Z",
     };

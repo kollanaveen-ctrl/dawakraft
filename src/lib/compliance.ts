@@ -5,7 +5,7 @@ import type { Check, DraftFields } from "./types";
 type CheckInput = {
   fields: Pick<
     DraftFields,
-    "name" | "composition" | "packSize" | "mrp" | "manufacturer" | "highlight" | "scheme" | "schedule"
+    "name" | "composition" | "uses" | "packSize" | "mrp" | "manufacturer" | "highlight" | "scheme" | "schedule"
   >;
   confirmed: boolean;
   companyName: string;
@@ -47,7 +47,7 @@ export function runChecks({ fields: f, confirmed, companyName, strengthOnFront }
       : { level: "bad", text: "Go back to Details and confirm you checked them against the carton." },
   );
 
-  const hits = bannedWords([f.name, f.highlight, f.scheme, f.composition].join(" "));
+  const hits = bannedWords([f.name, f.highlight, f.scheme, f.composition, f.uses ?? ""].join(" "));
   out.push(
     hits.length
       ? {

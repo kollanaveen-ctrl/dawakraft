@@ -1,7 +1,7 @@
 # Dawakraft design system
 
 > Status: living document. Last checked against the code on 2026-10-22.
-> Sources: `src/app/globals.css`, `src/styles/ai.css`, `src/styles/corners.css`, `src/styles/landing.css`, `src/components/Logo.tsx`, `src/app/layout.tsx`, `src/app/icon.svg`, `src/app/opengraph-image.tsx`.
+> Sources: `src/app/globals.css`, `src/styles/ai.css`, `src/styles/landing.css`, `src/components/Logo.tsx`, `src/app/layout.tsx`, `src/app/icon.svg`, `src/app/opengraph-image.tsx`.
 
 The look in three words: **pine, marigold, kraft paper.** Pine green means action and trust, marigold means highlight, and a warm off-white "kraft paper" background keeps long sessions calm. Everything is plain CSS classes driven by colour tokens on `:root`; Tailwind v4 is loaded and its theme is bridged to the same tokens (`@theme inline`), but the screens use the hand-written classes below.
 
@@ -46,17 +46,17 @@ Defined on `:root` in `globals.css`. Dark values apply under `@media (prefers-co
 | `--ink` | `#14201d` | `#e8efec` | Main text; toast and skip-link background. |
 | `--muted` | `#5b6863` | `#9caba5` | Secondary text, hints, evidence lines. |
 | `--line` | `#dcd8cd` | `#2a3632` | Borders and dividers. |
-| `--accent` | `#0e5e4e` | `#4cc7a4` | Pine: primary buttons, selected chips, focus rings, corner dots. |
+| `--accent` | `#0e5e4e` | `#4cc7a4` | Pine: primary buttons, selected chips, focus rings. |
 | `--accent-hover` | `#0b4c3f` | `#6bd5b6` | Primary button hover. |
 | `--accent-ink` | `#ffffff` | `#06231b` | Text on accent. |
 | `--accent-soft` | `#dcebe4` | `#173a31` | Selected tab, current step, chosen layout. |
-| `--capsule` | `#e9a23b` | (same) | Marigold: tags, step numbers on the landing page, Side/Top photo border. |
+| `--capsule` | `#e9a23b` | (same) | Marigold: tags, step numbers on the landing page, border on box-face photos (`.thumb.face`). |
 | `--capsule-ink` | `#3a2600` | (same) | Text on marigold. |
 | `--warn` / `--warn-soft` | `#9a5506` / `#fbefd8` | `#f0b060` / `#3a2a12` | "Check this" fields, warnings, demo banner. |
 | `--bad` / `--bad-soft` | `#b3261e` / `#fbe3e0` | `#f28b82` / `#3b1d1a` | Red compliance items, errors, delete. |
 | `--good` / `--good-soft` | `#0e5e4e` / `#dcebe4` | `#4cc7a4` / `#173a31` | Passed checks. |
 
-Fixed colours outside the tokens: the transparency checkerboard behind product pictures (`.check-bg`, `#fff` / `#e4e8e8`), browser theme colour `#F6F4EE` / `#0D1412` (`layout.tsx`), and the six customer brand-colour swatches in `src/lib/constants.ts` (`#0B7A63`, `#1F4E8C`, `#7A1F4E`, `#B4461E`, `#4B3A8F`, `#0F1F24`), which colour circulars, not the app.
+Fixed colours outside the tokens: the transparency checkerboard behind product pictures (`.check-bg`, `#fff` / `#e4e8e8`), browser theme colour `#F6F4EE` / `#0D1412` (`layout.tsx`), and the six customer brand-colour swatches in `src/lib/constants.ts` (`#0B7A63`, `#1F4E8C`, `#7A1F4E`, `#B4461E`, `#4B3A8F`, `#0F1F24`), which colour circulars, not the app. The Catalogue card circular uses its own navy `#043F88`, copied from the company's printed catalogue (`src/lib/circular/catalogCard.ts`).
 
 **Measured contrast** (WCAG ratio, computed from the hex values above): ink on bg 15.2:1; muted on bg 5.3:1 and on surface 5.8:1; white on pine 7.7:1; pine on bg 7.0:1; capsule-ink on marigold 6.7:1; warn on warn-soft 5.0:1; bad on bad-soft 5.3:1. Dark: ink on bg 16.0:1; muted on surface 7.2:1; accent-ink on accent 7.9:1; warn on warn-soft 7.3:1; bad on bad-soft 6.4:1. All pass WCAG AA for normal text (4.5:1).
 
@@ -70,13 +70,15 @@ Loaded with `next/font/google` in `layout.tsx` and exposed as CSS variables. The
 | Body | **Instrument Sans** | `--f-body` | 400, 500, 600 | Everything else; body 15 px, line height 1.55. |
 | Labels | **JetBrains Mono** | `--f-mono` | 500 | `.mono` eyebrows ("NEW PRODUCT"), counts on chips, tags, table headers, step numbers. Uppercase, 0.04–0.1em tracking. |
 
+**Circular only:** the Catalogue card layout uses Source Serif 4 (`--f-serif`, loaded in `layout.tsx`) to match the company's printed catalogue. The app screens don't use it.
+
 Sizes: `h1` 1.6rem (landing hero up to 3.6rem with `clamp`), `h2` 1.25rem, `h3` 1.02rem. Form inputs are 16 px so iPhones don't zoom in when a field is tapped. Headings use `text-wrap: balance`.
 
 ## 4. Shape, depth and spacing
 
 | Token / rule | Value |
 |---|---|
-| `--r` (buttons, notices, corner stage, face tabs) | 12 px |
+| `--r` (buttons, notices) | 12 px |
 | Cards | 16 px radius (14 px for empty states, FAQ items), 18 px padding |
 | Product cards, skeletons | 12 px |
 | Inputs | 8 px |
@@ -111,7 +113,6 @@ Layout: `.two` is a two-column split (≈55/45) that becomes one column at 760 p
 | **Empty states** | `.empty`, `.empty-art` | Dashed border, pine outline of the logo carton, title, one sentence, actions. |
 | **Toasts** | `.toast` (`Toast.tsx`) | Ink pill at the bottom centre, `role="status"`, 2.8 s. Sits above the bottom nav on phones. |
 | **Inline confirm** | `.inline-confirm` | Red-soft row for "Delete this product from the catalog?". |
-| **Corner editor** | `.corner-editor`, `.corner-stage`, `.corner-handle`, `.corner-lines`, `.corner-preview`, `.face-tabs`, `.corner-warn` (`corners.css`) | Photo at its own aspect ratio (capped at 70vh / 560 px), pine polygon joining the dots, 20 px dots inside a **44 px** hit area, live straightened preview, Front/Side/Top segmented tabs (44 px high), depth warning. `touch-action: none` so dragging doesn't scroll. |
 | **Transparency background** | `.check-bg` | Checkerboard behind the cut-out product picture. |
 | **Landing** | `landing.css` | Hero with a tilted live circular, five step cards with marigold numbers, editorial feature list with pine rules, FAQ with `<details>`, footer. |
 
@@ -133,10 +134,9 @@ Status lines use `aria-live="polite"` or `role="status"`; the sample-reading war
 ## 7. Accessibility rules
 
 1. **Contrast:** every text/background token pair in section 2 meets 4.5:1 in both themes. New colours must be checked the same way.
-2. **Touch targets:** aim for **48 px**. Today the bottom nav links are at least 48 px high (55 px measured on a 375 px screen), large buttons 50 px, corner dots and face tabs 44 px. **Not yet at 48 px:** standard `.btn` (42 px), chips, step pills, photo role selects and the ✕ remove button. These are on the [ROADMAP](ROADMAP.md).
-3. **Focus:** every focusable element shows a 2 px pine outline with a 2 px offset (`:focus-visible`). Corner dots fill pine with a 3 px ring when focused.
-4. **Skip link:** "Skip to content" is the first element on every page (`layout.tsx`) and jumps to `#main`.
-5. **Keyboard:** corner dots move with the arrow keys (Shift for bigger steps) and announce "Top-left corner of the front face" and so on. All actions are real buttons or links.
+2. **Touch targets:** aim for **48 px**. Today the bottom nav links are at least 48 px high (55 px measured on a 375 px screen) and large buttons are 50 px. **Not yet at 48 px:** standard `.btn` (42 px), chips, step pills, photo role selects and the ✕ remove button. These are on the [ROADMAP](ROADMAP.md).
+3. **Focus:** every focusable element shows a 2 px pine outline with a 2 px offset (`:focus-visible`). 4. **Skip link:** "Skip to content" is the first element on every page (`layout.tsx`) and jumps to `#main`.
+5. **Keyboard:** all actions are real buttons, links, checkboxes or selects, so the wizard needs no drag gesture. Step 2's controls (rotate buttons, background slider, tick boxes) are all of these.
 6. **Labels:** every input has a visible label; icon-only buttons have `aria-label` ("Remove photo 2", "Brand colour #0B7A63"); toggle buttons use `aria-pressed`; nav uses `aria-current`.
 7. **Reduced motion:** skeleton shimmer, card lift and chip transitions run only under `prefers-reduced-motion: no-preference`; the landing hero stops cycling layouts when reduced motion is requested.
 8. **Language:** `<html lang="en-IN">`.

@@ -25,7 +25,7 @@
 flowchart TB
   subgraph Phone["Phone or computer browser"]
     UI["React screens<br/>(src/components)"]
-    IMG["Image pipeline<br/>(src/lib/image)<br/>corners, straighten, 3D pack shot, cutout"]
+    IMG["Image pipeline<br/>(src/lib/image)<br/>auto corners, straighten, 3D box,<br/>strip/bottle/tube placement, cutout"]
     CIRC["Circular renderer<br/>(src/lib/circular)"]
     REPO["Data repo<br/>(src/lib/data/repo.ts)"]
     IDB[("IndexedDB<br/>demo store")]
@@ -97,17 +97,18 @@ All app screens share `(app)/layout.tsx`: `ToastProvider` → `DataProvider` →
 | `ai/box-read.ts` | Both | The prompt, merging a reading into the form, evidence lines (`Read from side panel: "…"`), the "Sample reading" warning text. |
 | `ai/access.ts` | Server | `checkAiAccess`: free providers skip checks; paid providers need a signed-in user (or local demo) and must pass the rate limit. |
 | `rate-limit.ts` | Server | In-memory window per server instance, plus the shared `ai_usage` table count. |
-| `image/perspective.ts` | Both (pure) | Corner ordering, aspect estimate, homography, bilinear `warpToRect`, depth consistency between side and top (warns over 20% mismatch). |
-| `image/corners.ts` | Browser | Auto-suggests corners from the background flood-fill mask; falls back to a rectangle 8% inside the photo edges. |
+| `image/perspective.ts` | Both (pure) | Corner ordering, aspect estimate, homography, bilinear `warpToRect`, `quadShare` (share of a photo covered by a detected face), depth consistency between left end (`side`) and top (warns over 20% mismatch). |
+| `image/corners.ts` | Browser | Finds the box edges automatically from the background flood-fill mask (no manual dragging); falls back to a rectangle 8% inside the photo edges. |
 | `image/straighten.ts` | Browser | Canvas glue: loads face photos up to 1600 px, straightens to a long side of 1200 px. |
-| `image/packshot.ts` | Browser | Builds the 3D pack shot from straightened faces (oblique view, soft shadow); flat path for bottles, tubes and strips. |
+| `image/packshot.ts` | Browser | Builds the 3D box from the straightened front, left end and top (view from the left, low camera, soft shadow). Size check per face (`MIN_FACE_SHARE`: front 20%, end and top 5%): an untrusted face is trimmed, or the photo is used as photographed. Fills a missing end or top from the front's edge colours. "Photos are cropped to the box" skips detection. |
+| `image/companion.ts` | Browser (layout pure) | Places the cut-out strip, bottle or tube in front of the box's right end, sized and tilted as in the company catalogue. `shotLayout` is pure and unit-tested; strips are turned upright and tubes flat automatically. |
 | `image/cutout.ts` | Browser | Background removal by flood-fill from the edges (tolerance slider, default 46). |
 | `image/encode.ts` | Browser | Image loading, product image as WebP/PNG, logo blob, AI images shrunk to JPEG base64. |
-| `faces.ts` | Browser | Which photo is front / side / top. |
+| `faces.ts` | Browser | Photo roles: Front, Left end (`side`), Top, Strip / bottle / tube (`pack`, with its pack type), Other side. Only one photo per role. The AI receives `pack` photos as `other`. |
 | `compliance.ts` | Both (pure) | The step-4 checklist. |
 | `composition.ts` | Both (pure) | Strength checks: misread letters (`5O0`), numbers with no unit, front strength vs composition (allows combination totals like 625 = 500 + 125). |
 | `segments.ts` | Both (pure) | New launch (`NEW_LAUNCH_DAYS = 60`), highlight auto-removal, company grouping, filter matching. |
-| `circular/draw.ts`, `circular/render.ts` | Browser | The three layouts at 1080 × 1350 and PNG export. |
+| `circular/draw.ts`, `circular/render.ts`, `circular/catalogCard.ts` | Browser | The four layouts (Catalogue card, Clean, Side band, Spotlight) at 1080 × 1350 and PNG export. |
 | `csv.ts` | Both | CSV / tab-separated parsing with header aliases, max 500 rows. |
 | `format.ts`, `share.ts`, `color.ts` | Both / browser | MRP text, WhatsApp message, catalog list, Web Share, download, clipboard, colour helpers. |
 | `data/repo.ts` | Browser | **Single data entry point.** Every read and write checks `demoMode` and goes either to Supabase or to `data/demo-store.ts`. |
@@ -126,7 +127,7 @@ Next.js 16 calls this file "proxy" (formerly middleware).
 
 ## 4. Data model
 
-From `supabase/migrations/0001_init.sql` and `0002_segments.sql`.
+From `supabase/migrations/0001_init.sql`, `0002_segments.sql` and `0003_uses.sql`.
 
 ```mermaid
 erDiagram
@@ -152,6 +153,7 @@ erDiagram
     uuid owner_id "default auth.uid()"
     text name "1..200"
     text composition "<=500"
+    text uses "<=140, added in 0003"
     text form "<=60"
     text pack_size "<=120"
     numeric mrp "null or > 0"
@@ -162,7 +164,7 @@ erDiagram
     text category "<=60, default Other"
     text scheme "<=120"
     text highlight "<=60"
-    text template "clean band spotlight"
+    text template "catalog clean band spotlight"
     text image_path
     boolean example
     timestamptz launched_at "added in 0002"

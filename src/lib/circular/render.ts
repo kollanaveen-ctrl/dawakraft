@@ -1,7 +1,8 @@
-// The three circular layouts (Clean, Side band, Spotlight), drawn at 1080×1350.
+// The circular layouts (Catalogue card, Clean, Side band, Spotlight), drawn at 1080×1350.
 import { mix, rgba, textOn } from "../color";
 import { TRADE_LINE, type TemplateKey } from "../constants";
 import type { Company, ProductFields } from "../types";
+import { drawCatalogCard } from "./catalogCard";
 import {
   type Ctx,
   type Drawable,
@@ -212,7 +213,8 @@ export function renderCircular(canvas: HTMLCanvasElement, input: CircularInput):
   ctx.clearRect(0, 0, CIRCULAR_W, CIRCULAR_H);
   ctx.textBaseline = "alphabetic";
   const brand = input.company.brandColor || "#0B7A63";
-  if (input.template === "band") drawBand(ctx, input, brand);
+  if (input.template === "catalog") drawCatalogCard(ctx, input, CIRCULAR_W, CIRCULAR_H);
+  else if (input.template === "band") drawBand(ctx, input, brand);
   else if (input.template === "spotlight") drawSpotlight(ctx, input, brand);
   else drawClean(ctx, input, brand);
   ctx.setTransform(1, 0, 0, 1, 0, 0);

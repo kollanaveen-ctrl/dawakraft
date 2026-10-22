@@ -1,6 +1,6 @@
 # Dawakraft
 
-Photograph a medicine box → remove the background → AI reads the specs → you confirm → compliance check → branded product circular (3 layouts) → searchable catalog → share on WhatsApp.
+Photograph a medicine box → remove the background → AI reads the specs → you confirm → compliance check → branded product circular (4 layouts, including a "Catalogue card" copy of the printed catalogue) → searchable catalog → share on WhatsApp.
 
 Built for small pharma distributors, PCD companies and agents in India. Each distributor signs in with their email and sees only their own catalog and branding.
 
@@ -48,7 +48,7 @@ You need **Node.js 20 or newer** (download the "LTS" version from nodejs.org).
 ### Step 1: Create the Supabase project (the database)
 
 1. Go to **supabase.com**, sign up, and click **New project**. Pick the **Mumbai (ap-south-1)** region so it's fast in India.
-2. When it's ready, open **SQL Editor → New query**. Open the file `supabase/migrations/0001_init.sql` from this folder, copy everything, paste it in, and press **Run**. This creates the tables and the private photo storage, and makes sure each user only sees their own data. Then do the same with `supabase/migrations/0002_segments.sql`, which adds the "new launch" date.
+2. When it's ready, open **SQL Editor → New query**. Open the file `supabase/migrations/0001_init.sql` from this folder, copy everything, paste it in, and press **Run**. This creates the tables and the private photo storage, and makes sure each user only sees their own data. Then do the same with `supabase/migrations/0002_segments.sql`, which adds the "new launch" date, and then `supabase/migrations/0003_uses.sql`, which adds the optional "Uses (indications)" field shown on the Catalogue card.
 3. Open **Authentication → URL Configuration**:
    - **Site URL:** `http://localhost:3000` (change it to your Vercel link after step 6)
    - **Redirect URLs:** add `http://localhost:3000/auth/callback`
@@ -124,9 +124,12 @@ app/
   src/app/api/categorize/             server function: sorts imported products into categories
   src/components/                     the screens and the 5-step wizard
   src/lib/compliance.ts               trade-only rules and banned claim words
-  src/lib/circular/                   draws the 3 circular layouts (1080 × 1350 PNG)
+  src/lib/circular/                   draws the 4 circular layouts (1080 × 1350 PNG)
+  src/lib/image/corners.ts            finds the edges of each box photo by itself
+  src/lib/image/straighten.ts         straightens each box face to a flat rectangle
   src/lib/image/cutout.ts             background removal (runs on the phone, free)
-  src/lib/image/packshot.ts           the 3D pack shot built from the front, side and top photos
+  src/lib/image/packshot.ts           the 3D box built from the front, left end and top photos
+  src/lib/image/companion.ts          places your strip, bottle or tube photo in front of the box
   src/lib/segments.ts                 catalog segments: company, new launch vs existing
   src/lib/ai/                         the AI prompt and how its answer fills the form
 ```
@@ -145,7 +148,30 @@ npm run build
 
 ## 3D pack shots
 
-In step 1, label each photo **Front**, **Side** (the side to the right of the front) or **Top**. If a Side or Top photo is labelled, step 2 wraps the photos onto a 3D box seen at an angle, with a soft shadow, and that picture goes on the circular. It runs on the phone in under a second and costs nothing. With only a front photo, the circular uses the flat photo as before. Bottles, tubes and blister strips aren't boxes, so for those, label just the front.
+The product picture is built only from your own photos. It is never drawn by AI, so the strength and the design on the pack stay exactly as printed.
+
+In step 1, label each photo:
+
+- **Front**: the main face with the brand name. Every product needs one.
+- **Left end**: the narrow side on the left of the front, the same way the printed catalogue shows it.
+- **Top**: the top of the box.
+- **Strip / bottle / tube**: one photo of the real strip, bottle or tube. Then pick its type from the list: Strip (blister or alu-alu), Bottle or vial, or Tube.
+- **Other side**: any other face. The AI reads it for details, but it isn't used in the picture.
+
+In step 2 the app straightens each box photo by itself, so there are no dots to move. It turns the front, left end and top into a box seen slightly from the left, places your strip, bottle or tube in front of the box, and adds soft shadows. It runs on your phone and costs nothing.
+
+If the app can't find the edges of a photo, it uses that photo as you took it and tells you. To fix it, either:
+
+- retake the photo on a dark plain sheet, or
+- crop the photo to the box in your phone's gallery and tick **Photos are cropped to the box** in step 2. The photos are then used as they are.
+
+**Tips for good photos:**
+
+- Use a dark plain sheet (black chart paper) for boxes and silver strips. Use white paper only for dark or amber bottles.
+- Shoot in daylight, without flash.
+- Stand about 1 metre back and zoom in 2×, so the edges look straight.
+
+With only a front photo, the box still looks 3D. The app fills in the end and top from the colours along the edges of the front.
 
 ## How the catalog sorts itself
 
@@ -169,7 +195,7 @@ The catalog has three rows of filters, and they can be combined:
 | [Integrations](docs/INTEGRATIONS.md) | Supabase, Claude, the mock AI, Vercel: settings, limits, costs, status. |
 | [Testing](docs/TESTING.md) | Commands, current results, manual checks, known gaps. |
 | [Roadmap](docs/ROADMAP.md) | What's done, what's left, what comes next. |
-| [Decision records (ADRs)](docs/adr/README.md) | Why the big choices were made: [0001 Next.js + Supabase](docs/adr/0001-nextjs-supabase.md), [0002 demo mode](docs/adr/0002-demo-mode-browser-storage.md), [0003 provider-independent AI](docs/adr/0003-provider-independent-ai.md), [0004 on-device pack shots](docs/adr/0004-on-device-pack-shots.md), [0005 landing at `/`, app at `/catalog`](docs/adr/0005-public-landing-and-catalog-route.md). |
+| [Decision records (ADRs)](docs/adr/README.md) | Why the big choices were made: [0001 Next.js + Supabase](docs/adr/0001-nextjs-supabase.md), [0002 demo mode](docs/adr/0002-demo-mode-browser-storage.md), [0003 provider-independent AI](docs/adr/0003-provider-independent-ai.md), [0004 on-device pack shots](docs/adr/0004-on-device-pack-shots.md), [0005 landing at `/`, app at `/catalog`](docs/adr/0005-public-landing-and-catalog-route.md), [0006 automatic straightening and the catalogue-style picture](docs/adr/0006-automatic-straightening-and-catalogue-product-picture.md). |
 
 ## Good to know
 

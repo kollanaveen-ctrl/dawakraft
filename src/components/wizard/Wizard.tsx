@@ -12,18 +12,16 @@ import {
   aiRoleOf,
   assignRole,
   removePhoto,
-  withoutCorners,
   type BoxFace,
   type FaceCanvases,
-  type FaceCorners,
   type FaceRole,
   type FaceRotations,
   type Faces,
+  type PackKind,
 } from "@/lib/faces";
 import { DEFAULT_TOLERANCE } from "@/lib/image/cutout";
 import { loadImage, productImageBlob } from "@/lib/image/encode";
 import { buildPackImage } from "@/lib/image/packshot";
-import type { Quad } from "@/lib/image/perspective";
 import { highlightFor, highlightOnToggle, isNewLaunch, nextLaunchedAt } from "@/lib/segments";
 import type { DraftFields, Product } from "@/lib/types";
 import { primeMediaImage, useData, useMediaImage } from "../DataProvider";
@@ -56,10 +54,11 @@ export function Wizard({ product }: { product: Product | null }) {
   const [threeD, setThreeD] = useState(true);
   const [tol, setTol] = useState(DEFAULT_TOLERANCE);
   const [cut, setCut] = useState<HTMLCanvasElement | null>(null);
-  // Box corners the user placed per face (faces without an entry use the auto-suggestion), whether
-  // the pack is not a box at all, and the straightened faces. `cut` stays the final pack shot.
-  const [corners, setCorners] = useState<FaceCorners>({});
+  // Whether the pack is not a box at all, and what stands beside the box (strip, bottle or tube).
+  // `cut` stays the final product picture.
   const [notABox, setNotABox] = useState(false);
+  const [packKind, setPackKind] = useState<PackKind>("strip");
+  const [cropped, setCropped] = useState(false);
   // Straightened faces, kept for sending the legible side panels (composition, strength) to the AI.
   const [faceCanvases, setFaceCanvases] = useState<FaceCanvases>({});
   // Straightened faces as files, so the AI reads flat, sharp panels instead of tilted photos.
@@ -69,13 +68,14 @@ export function Wizard({ product }: { product: Product | null }) {
   const [isNew, setIsNew] = useState(() => (product ? isNewLaunch(product) : true));
   const [low, setLow] = useState<Low>({});
   const [confirmed, setConfirmed] = useState(false);
-  const [template, setTemplate] = useState<TemplateKey>(product?.template ?? "clean");
+  const [template, setTemplate] = useState<TemplateKey>(product?.template ?? "catalog");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState({ text: "", err: false });
 
   const frontFile = files[faces.front] ?? null;
   const sideFile = faces.side == null ? null : (files[faces.side] ?? null);
   const topFile = faces.top == null ? null : (files[faces.top] ?? null);
+  const packFile = faces.pack == null ? null : (files[faces.pack] ?? null);
 
   const checks = useMemo(
     () => runChecks({ fields, confirmed, companyName: company.name, strengthOnFront }),
@@ -114,13 +114,12 @@ export function Wizard({ product }: { product: Product | null }) {
     [fields, isNew],
   );
   const tolChange = useCallback((t: number) => setTol(t), []);
-  const setFaceCorners = useCallback((face: BoxFace, quad: Quad) => setCorners((c) => ({ ...c, [face]: quad })), []);
 
   // If photos changed and step 2 was skipped, prepare the pack shot in the background.
   useEffect(() => {
     if (step < 3 || cut || !frontFile) return;
     let live = true;
-    buildPackImage({ front: frontFile, side: sideFile, top: topFile, rots, removeBg, tol, threeD, notABox, corners })
+    buildPackImage({ front: frontFile, side: sideFile, top: topFile, pack: packFile, packKind, rots, removeBg, tol, threeD, notABox, cropped })
       .then((res) => {
         if (!live) return;
         setCut(res.canvas);
@@ -130,7 +129,7 @@ export function Wizard({ product }: { product: Product | null }) {
     return () => {
       live = false;
     };
-  }, [step, cut, frontFile, sideFile, topFile, rots, removeBg, tol, threeD, notABox, corners]);
+  }, [step, cut, frontFile, sideFile, topFile, packFile, packKind, rots, removeBg, tol, threeD, notABox, cropped]);
 
   function go(n: number) {
     setStep(n);
@@ -142,7 +141,6 @@ export function Wizard({ product }: { product: Product | null }) {
     setFiles(next);
     setFaces(nextFaces);
     setRots(NO_ROTATION);
-    setCorners({});
     setFaceCanvases({});
     setCut(null);
   }
@@ -153,8 +151,16 @@ export function Wizard({ product }: { product: Product | null }) {
 
   function rotate(face: keyof FaceRotations) {
     setRots((r) => ({ ...r, [face]: (r[face] + 90) % 360 }));
-    // Corners belong to the upright photo, so they are found again after a turn.
-    setCorners((c) => withoutCorners(c, face));
+  }
+
+  function changePackKind(kind: PackKind) {
+    setPackKind(kind);
+    setCut(null);
+  }
+
+  function changeCropped(on: boolean) {
+    setCropped(on);
+    setCut(null);
   }
 
   function changeNotABox(on: boolean) {
@@ -255,6 +261,8 @@ export function Wizard({ product }: { product: Product | null }) {
           files={files}
           faces={faces}
           editing={editing}
+          packKind={packKind}
+          onPackKind={changePackKind}
           onAdd={(more) => changePhotos([...files, ...more], faces)}
           onSetRole={setRole}
           onRemove={(i) => changePhotos(files.filter((_, k) => k !== i), removePhoto(faces, i, files.length))}
@@ -275,9 +283,12 @@ export function Wizard({ product }: { product: Product | null }) {
           onTol={tolChange}
           onCut={setCut}
           notABox={notABox}
-          corners={corners}
           onNotABox={changeNotABox}
-          onCorners={setFaceCorners}
+          pack={packFile}
+          packKind={packKind}
+          onPackKind={changePackKind}
+          cropped={cropped}
+          onCropped={changeCropped}
           onFaceCanvases={setFaceCanvases}
         />
       )}

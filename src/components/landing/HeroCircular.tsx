@@ -1,6 +1,6 @@
 "use client";
 // The landing page hero: a real circular drawn by the app's own renderer, with a 3D pack shot
-// built from sample carton faces, cycling through the three layouts.
+// built from sample carton faces, cycling through the layouts.
 import { useEffect, useState } from "react";
 import { CircularCanvas } from "@/components/CircularCanvas";
 import { SAMPLE, TEMPLATES, type TemplateKey } from "@/lib/constants";

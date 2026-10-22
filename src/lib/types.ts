@@ -4,6 +4,8 @@ export type Product = {
   id: string;
   name: string;
   composition: string;
+  /** Indications as in the approved leaflet, e.g. "Hypertension, Angina". Optional. */
+  uses: string;
   form: string;
   packSize: string;
   mrp: number | null;

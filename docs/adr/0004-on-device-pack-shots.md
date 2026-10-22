@@ -1,6 +1,6 @@
 # ADR 0004: On-device 3D pack shots from user-placed corners
 
-- **Status:** Accepted
+- **Status:** Accepted, partly superseded by [ADR 0006](0006-automatic-straightening-and-catalogue-product-picture.md): the manual corner dots and the strip/bottle/tube path below are replaced; the rest still applies.
 - **Date:** recorded 2026-10-22
 
 ## Context

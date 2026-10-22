@@ -151,8 +151,8 @@ describe("box reading prompt", () => {
   });
 
   it("maps wizard faces to AI roles", () => {
-    const faces = { front: 1, side: 0, top: null };
-    expect([0, 1, 2].map((i) => aiRoleOf(faces, i))).toEqual(["side", "front", "other"]);
+    const faces = { front: 1, side: 0, top: null, pack: 3 };
+    expect([0, 1, 2, 3].map((i) => aiRoleOf(faces, i))).toEqual(["side", "front", "other", "other"]);
   });
 });
 

@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import { RegisterSW } from "@/components/RegisterSW";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 import "./globals.css";
-import "../styles/corners.css";
 import "../styles/ai.css";
 import "../styles/landing.css";
 
@@ -11,6 +10,14 @@ import "../styles/landing.css";
 const display = Bricolage_Grotesque({ variable: "--f-display", subsets: ["latin"], weight: ["500", "700", "800"] });
 const body = Instrument_Sans({ variable: "--f-body", subsets: ["latin"], weight: ["400", "500", "600"] });
 const mono = JetBrains_Mono({ variable: "--f-mono", subsets: ["latin"], weight: ["500"] });
+// Stand-in for the printed catalogue's serif (Mencken Std); used only by the Catalogue card circular.
+const serif = Source_Serif_4({
+  variable: "--f-serif",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  style: ["normal", "italic"],
+  preload: false,
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -36,7 +43,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-IN" className={`${display.variable} ${body.variable} ${mono.variable} antialiased`}>
+    <html lang="en-IN" className={`${display.variable} ${body.variable} ${mono.variable} ${serif.variable} antialiased`}>
       <body>
         <a className="skip-link" href="#main">
           Skip to content

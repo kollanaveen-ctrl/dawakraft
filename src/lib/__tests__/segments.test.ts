@@ -18,7 +18,7 @@ const daysAgo = (d: number) => new Date(NOW - d * 86_400_000).toISOString();
 
 function product(over: Partial<Product>): Product {
   return {
-    id: "p", name: "Exampol 650", composition: "Paracetamol IP 650 mg", form: "Tablet", packSize: "10 x 15", mrp: 32.5,
+    id: "p", name: "Exampol 650", composition: "Paracetamol IP 650 mg", uses: "", form: "Tablet", packSize: "10 x 15", mrp: 32.5,
     schedule: "None", manufacturer: "", marketedBy: "", storage: "", category: "Analgesic & antipyretic", scheme: "",
     highlight: "", template: "clean", imagePath: null, example: false, launchedAt: null,
     createdAt: daysAgo(1), updatedAt: daysAgo(1), ...over,
@@ -80,41 +80,55 @@ describe("company segments", () => {
   });
 });
 
-describe("photo roles for the 3D pack shot", () => {
-  const start: Faces = { front: 0, side: null, top: null };
+describe("photo roles for the product picture", () => {
+  const start: Faces = { front: 0, side: null, top: null, pack: null };
 
   it("gives each role to one photo and always keeps a front", () => {
     const withSide = assignRole(start, 1, "side", 3);
-    expect(withSide).toEqual({ front: 0, side: 1, top: null });
-    expect(assignRole(withSide, 1, "top", 3)).toEqual({ front: 0, side: null, top: 1 });
+    expect(withSide).toEqual({ front: 0, side: 1, top: null, pack: null });
+    expect(assignRole(withSide, 1, "top", 3)).toEqual({ front: 0, side: null, top: 1, pack: null });
     // Making the front photo the side: the photo that was the side is now free, so it becomes the front.
-    expect(assignRole(withSide, 0, "side", 3)).toEqual({ front: 1, side: 0, top: null });
+    expect(assignRole(withSide, 0, "side", 3)).toEqual({ front: 1, side: 0, top: null, pack: null });
     expect(roleOf(withSide, 2)).toBe("none");
   });
 
+  it("marks the strip or bottle photo and never makes it the front", () => {
+    const withPack = assignRole(start, 2, "pack", 3);
+    expect(withPack).toEqual({ front: 0, side: null, top: null, pack: 2 });
+    expect(roleOf(withPack, 2)).toBe("pack");
+    // The front photo becomes the strip: the next free photo (1, not the strip) becomes the front.
+    expect(assignRole({ ...start, pack: 2 }, 0, "pack", 3)).toEqual({ front: 1, side: null, top: null, pack: 0 });
+  });
+
   it("shifts roles when a photo is removed", () => {
-    expect(removePhoto({ front: 2, side: 0, top: 1 }, 0, 3)).toEqual({ front: 1, side: null, top: 0 });
-    expect(removePhoto({ front: 0, side: null, top: null }, 0, 1)).toEqual({ front: 0, side: null, top: null });
+    expect(removePhoto({ front: 2, side: 0, top: 1, pack: 3 }, 0, 4)).toEqual({ front: 1, side: null, top: 0, pack: 2 });
+    expect(removePhoto({ front: 0, side: null, top: null, pack: 1 }, 1, 2)).toEqual({ front: 0, side: null, top: null, pack: null });
+    expect(removePhoto(start, 0, 1)).toEqual(start);
   });
 });
 
 describe("3D box shape", () => {
   it("takes the depth from the side photo, matched to the front height", () => {
     const g = boxGeometry({ width: 400, height: 600 }, { width: 150, height: 300 }, null);
-    // side depth = 150 * (600/300) = 300px, drawn at 55% along a 32° angle
-    expect(g).toEqual({ w: 400, h: 600, dx: 140, dy: 87 });
+    // end depth = 150 * (600/300) = 300px, drawn at 42% along an 18° angle (up and to the left)
+    expect(g).toEqual({ w: 400, h: 600, dx: 120, dy: 39 });
   });
 
-  it("uses the top photo when there is no side photo, and is flat with neither", () => {
-    // top depth = 100 * (400/400) = 100px → 55 → 55 × cos 32° ≈ 47
-    expect(boxGeometry({ width: 400, height: 600 }, null, { width: 400, height: 100 })?.dx).toBe(47);
+  it("uses the top photo when there is no end photo, and is flat with neither", () => {
+    // top depth = 100 * (400/400) = 100px → 42 → 42 × cos 18° ≈ 40
+    expect(boxGeometry({ width: 400, height: 600 }, null, { width: 400, height: 100 })?.dx).toBe(40);
     expect(boxGeometry({ width: 400, height: 600 }, null, null)).toBeNull();
+  });
+
+  it("assumes a typical carton depth when asked, so a front photo alone still looks 3D", () => {
+    // 30% of 400 = 120px → 50.4 → 50.4 × cos 18° ≈ 48
+    expect(boxGeometry({ width: 400, height: 600 }, null, null, true)?.dx).toBe(48);
   });
 
   it("keeps odd photos from making a paper-thin or huge box", () => {
     const thin = boxGeometry({ width: 400, height: 600 }, { width: 1, height: 600 }, null);
     const huge = boxGeometry({ width: 400, height: 600 }, { width: 5000, height: 600 }, null);
-    expect(thin?.dx).toBe(Math.round(0.15 * 400 * 0.55 * Math.cos((32 * Math.PI) / 180)));
-    expect(huge?.dx).toBe(Math.round(1.5 * 400 * 0.55 * Math.cos((32 * Math.PI) / 180)));
+    expect(thin?.dx).toBe(Math.round(0.15 * 400 * 0.42 * Math.cos((18 * Math.PI) / 180)));
+    expect(huge?.dx).toBe(Math.round(1.5 * 400 * 0.42 * Math.cos((18 * Math.PI) / 180)));
   });
 });

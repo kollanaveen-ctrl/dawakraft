@@ -32,6 +32,7 @@ function sortSummary(n: number, mock: boolean): string {
 const COLUMNS: [keyof ImportRow, string][] = [
   ["name", "Name"],
   ["composition", "Composition"],
+  ["uses", "Uses"],
   ["form", "Form"],
   ["packSize", "Pack"],
   ["mrp", "MRP"],
@@ -44,6 +45,7 @@ function toProduct(r: ImportRow, createdAt: string): Product {
     id: crypto.randomUUID(),
     name: r.name,
     composition: r.composition || "",
+    uses: r.uses || "",
     form: r.form || "",
     packSize: r.packSize || "",
     mrp: r.mrp ?? null,
@@ -54,7 +56,7 @@ function toProduct(r: ImportRow, createdAt: string): Product {
     category: r.category || "Other",
     scheme: "",
     highlight: "",
-    template: "clean",
+    template: "catalog",
     imagePath: null,
     example: false,
     launchedAt: null, // imported lists are existing products
@@ -147,7 +149,7 @@ export function ImportView() {
       <div className="card stack" style={{ marginTop: 16 }}>
         <p className="muted">
           Paste rows from Excel or upload a CSV file. The first row must name the columns:{" "}
-          <span className="mono" style={{ textTransform: "none" }}>name, composition, form, pack, mrp, manufacturer, category</span>. Only name is required.
+          <span className="mono" style={{ textTransform: "none" }}>name, composition, uses, form, pack, mrp, manufacturer, category</span>. Only name is required.
         </p>
         <div className="row">
           <label className="btn">
