@@ -1,6 +1,17 @@
+import { aiProvider } from "@/lib/ai";
 import { demoMode } from "@/lib/config";
 
 const isLocal = process.env.NODE_ENV !== "production";
+
+/** What "Read box with AI" does on the online demo, given the configured provider. */
+function onlineAiNote(): string {
+  const choice = aiProvider();
+  if (!choice.ok) return "AI reading is off here, so type the details from the carton.";
+  if (choice.provider.paid) {
+    return "“Read box with AI” reads your photos with real AI once you enter the demo passcode; without it, type the details from the carton.";
+  }
+  return "“Read box with AI” fills in clearly labelled sample values here, not a real reading of your photos.";
+}
 
 /** Shown on every screen until real Supabase keys are added. */
 export function DemoBanner() {
@@ -15,8 +26,7 @@ export function DemoBanner() {
         </p>
       ) : (
         <p>
-          <b>Demo.</b> Try everything freely: your products and company details are saved only in this browser, on this device. &ldquo;Read box with AI&rdquo;
-          fills in clearly labelled sample values here, not a real reading of your photos.
+          <b>Demo.</b> Try everything freely: your products and company details are saved only in this browser, on this device. {onlineAiNote()}
         </p>
       )}
     </div>
