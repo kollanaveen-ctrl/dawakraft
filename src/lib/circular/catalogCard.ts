@@ -24,7 +24,7 @@ const USES_PX = 30;
 const BAND_PX = 52;
 
 /** Faint hexagon lines behind the card, like the catalogue's paper. A few cells are tinted. */
-function hexPattern(ctx: Ctx, w: number, h: number) {
+export function hexPattern(ctx: Ctx, w: number, h: number) {
   const dx = Math.sqrt(3) * HEX_R;
   const dy = 1.5 * HEX_R;
   const tinted = new Set(["1,4", "2,1", "4,5", "5,2", "7,4"]);
@@ -169,23 +169,30 @@ function tradeFooter(ctx: Ctx, c: Company, w: number, top: number) {
   ctx.textAlign = "left";
 }
 
-/** Draw the Catalogue card at `w` × `h` (the circular size). */
-export function drawCatalogCard(ctx: Ctx, { product: p, company: c, image, logo }: CircularInput, w: number, h: number) {
-  const footTop = h - FOOT_H;
-  const bandTop = footTop - BAND_H;
+/**
+ * The card itself, at `w` × `h` from the canvas origin: paper, title, composition, uses, pack
+ * shot and price band. `textTop` leaves room above the title (for a logo on the circular).
+ */
+export function drawCardBody(ctx: Ctx, p: ProductFields, image: Drawable | null, w: number, h: number, textTop = 118) {
+  const bandTop = h - BAND_H;
   ctx.fillStyle = CARD;
   ctx.fillRect(0, 0, w, bandTop);
   hexPattern(ctx, w, bandTop);
+  rxBadge(ctx, p.schedule, w - PAD - 34, Math.max(64, textTop - 42), 42);
 
-  if (logo) logoMark(ctx, logo, PAD - 10, 26, 220, 76);
-  rxBadge(ctx, p.schedule, w - PAD - 34, 76, 42);
-
-  const textEnd = textBlock(ctx, p, w, 118);
+  const textEnd = textBlock(ctx, p, w, textTop);
   const artTop = textEnd + 30;
   const artH = bandTop - 24 - artTop;
   if (image) drawFitBottom(ctx, image, PAD, artTop, w - PAD * 2, artH);
   else productArt(ctx, null, p, NAVY, PAD, artTop, w - PAD * 2, artH);
 
   priceBand(ctx, p, w, bandTop);
+}
+
+/** Draw the Catalogue card at `w` × `h` (the circular size). */
+export function drawCatalogCard(ctx: Ctx, { product: p, company: c, image, logo }: CircularInput, w: number, h: number) {
+  const footTop = h - FOOT_H;
+  drawCardBody(ctx, p, image, w, footTop);
+  if (logo) logoMark(ctx, logo, PAD - 10, 26, 220, 76);
   tradeFooter(ctx, c, w, footTop);
 }

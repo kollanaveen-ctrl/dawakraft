@@ -144,6 +144,9 @@ export function Catalog() {
           <button className="btn" type="button" onClick={copyCatalog}>
             Copy catalog list
           </button>
+          <Link className="btn" href="/export">
+            Catalogue PDF
+          </Link>
           <Link className="btn primary" href="/new">
             New product
           </Link>

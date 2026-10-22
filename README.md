@@ -173,6 +173,17 @@ If the app can't find the edges of a photo, it uses that photo as you took it an
 
 With only a front photo, the box still looks 3D. The app fills in the end and top from the colours along the edges of the front.
 
+## Catalogue PDF
+
+On the Catalog screen, press **Catalogue PDF**. Every product becomes a catalogue card, four to a page, in the style of a printed pharma catalogue:
+
+- **Top of each page:** your logo (or company name), the section (for example **Tablets**) and the title **Product Catalogue 2026-27**. The year follows the April–March financial year, and you can change the title.
+- **Bottom of each page:** the division bar (type your division, for example "Ultima Division", or leave it empty to use your company name), page dots and the page number. Like a bound catalogue, odd and even pages are mirrored. The trade-only line is printed on every page.
+- **Order:** pages are grouped by dosage form (Tablets, Capsules, Liquid, Drops, Ointment…) or by therapy category, and sorted A to Z. Each section starts on a new page. You can include all products, only new launches, or only existing ones.
+- **Download PDF** saves one file; **Share PDF** opens the phone's share sheet (WhatsApp, email). The PDF is made on the phone, so it costs nothing.
+
+Products without a photo show a plain sample pack, so add photos for the best result.
+
 ## How the catalog sorts itself
 
 The catalog has three rows of filters, and they can be combined:
