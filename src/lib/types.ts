@@ -1,4 +1,5 @@
 import type { ImageRole, TemplateKey } from "./constants";
+import type { Promo } from "./promo";
 
 export type Product = {
   id: string;
@@ -17,6 +18,8 @@ export type Product = {
   scheme: string;
   highlight: string;
   template: TemplateKey;
+  /** Content for the Promo circular (headline, ingredient sections, photo…). */
+  promo: Promo;
   imagePath: string | null;
   example: boolean;
   /** When the product launched (ISO time); null for an existing product. */
@@ -28,7 +31,7 @@ export type Product = {
 /** What a circular needs to draw a product: everything except bookkeeping. */
 export type ProductFields = Omit<
   Product,
-  "id" | "template" | "imagePath" | "example" | "launchedAt" | "createdAt" | "updatedAt"
+  "id" | "template" | "promo" | "imagePath" | "example" | "launchedAt" | "createdAt" | "updatedAt"
 >;
 
 /** Form state in the wizard: MRP is kept as typed text until saved. */

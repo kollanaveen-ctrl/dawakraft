@@ -31,6 +31,7 @@ import { CircularStep } from "./CircularStep";
 import { CleanupStep } from "./CleanupStep";
 import { DetailsStep } from "./DetailsStep";
 import { PhotosStep } from "./PhotosStep";
+import { EMPTY_PROMO } from "@/lib/promo";
 
 const STEPS = ["Photos", "Clean up", "Details", "Check", "Circular"];
 type Low = Partial<Record<FieldKey, true>>;
@@ -41,6 +42,7 @@ export function Wizard({ product }: { product: Product | null }) {
   const toast = useToast();
   const logo = useMediaImage(company.logoPath);
   const existingImage = useMediaImage(product?.imagePath);
+  const promoPhoto = useMediaImage(product?.promo.photoPath);
   const editing = Boolean(product);
 
   // A new product gets its id when first saved (ids can't be made during the server pre-render).
@@ -219,6 +221,7 @@ export function Wizard({ product }: { product: Product | null }) {
         ...draftToFields(fields),
         id,
         template,
+        promo: product?.promo ?? EMPTY_PROMO,
         imagePath,
         example: Boolean(product?.example && !uploaded),
         launchedAt: nextLaunchedAt(product?.launchedAt ?? null, isNew, now),
@@ -328,6 +331,8 @@ export function Wizard({ product }: { product: Product | null }) {
           image={cut ?? existingImage}
           logo={logo}
           template={template}
+          promo={product?.promo}
+          photo={promoPhoto}
           saving={saving}
           status={saveStatus}
           onTemplate={setTemplate}

@@ -10,6 +10,7 @@ import type { Product } from "@/lib/types";
 import { useData } from "./DataProvider";
 import { DemoUnlock } from "./DemoUnlock";
 import { useToast } from "./Toast";
+import { EMPTY_PROMO } from "@/lib/promo";
 
 const PREVIEW_ROWS = 12;
 const SORT_FALLBACK = "Couldn't sort the categories. Try again.";
@@ -57,6 +58,7 @@ function toProduct(r: ImportRow, createdAt: string): Product {
     scheme: "",
     highlight: "",
     template: "catalog",
+    promo: EMPTY_PROMO,
     imagePath: null,
     example: false,
     launchedAt: null, // imported lists are existing products

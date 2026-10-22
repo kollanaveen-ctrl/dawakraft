@@ -173,6 +173,20 @@ If the app can't find the edges of a photo, it uses that photo as you took it an
 
 With only a front photo, the box still looks 3D. The app fills in the end and top from the colours along the edges of the front.
 
+## Promo circular
+
+A landscape visual aid in the style of Indian pharma circulars. On a product page, choose **Promo circular**, then **Edit promo content**.
+
+- **Left side:** the brand name in heavy italic with its suffix on a coloured badge (for example **Doloride** + **SP**), the composition, coloured ingredient tags with short points, the red **In** box with the indications, and your box-and-strip picture.
+- **Right side:** a headline with a coloured banner, the lifestyle photo, and a closing line.
+- **Price ticket:** M.R.P., pack size and case size. **Footer:** your logo, company name, address and the trade-only line.
+- **Colours** match the pack automatically (purple pack, purple theme), or pick one of six themes.
+- **Write copy with AI** drafts the headline, banner, ingredient points and indications from the product's own composition and uses. It never invents indications or studies, and avoids claim words. Read and edit every line.
+- **Photo:** upload your own (one you have the rights to) or **Make a photo with AI** (about ₹7 per photo). AI photos show a made-up person, never your pack, and are labelled "AI-generated image" on the circular.
+- **Claims check:** banned words (cure, guarantee, best…) stop the circular from being downloaded or shared. Strong claims (prevents, rapid, FDA, effective…) need you to tick "I checked these claims" first, and any later edit asks again.
+
+When you connect Supabase, also run `supabase/migrations/0004_promo.sql`.
+
 ## Catalogue PDF
 
 On the Catalog screen, press **Catalogue PDF**. Every product becomes a catalogue card, four to a page, in the style of a printed pharma catalogue:

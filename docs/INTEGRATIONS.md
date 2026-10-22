@@ -29,6 +29,8 @@ Set them in `.env.local` on your computer and in **Vercel → Project → Settin
 | `OPENROUTER_API_KEY` | `src/lib/ai/providers/gemini.ts`, `src/lib/ai/index.ts` | **Yes. Never prefix with `NEXT_PUBLIC_`; never log or commit it.** | OpenRouter key for Google Gemini. |
 | `OPENROUTER_MODEL` | `src/lib/ai/providers/gemini.ts` | No | Optional box-reading model. Must start with `google/`, otherwise the default `google/gemini-3.7-flash` is used. |
 | `OPENROUTER_CATEGORY_MODEL` | same | No | Optional category model. Must start with `google/`, otherwise the default `google/gemini-3.5-flash-lite` is used. |
+| `OPENROUTER_COPY_MODEL` | same | No | Optional copywriter model (`/api/write-copy`). Must start with `google/`, otherwise the default `google/gemini-3.7-flash` is used. |
+| `OPENROUTER_IMAGE_MODEL` | same | No | Optional lifestyle-photo model (`/api/promo-photo`). Must start with `google/`, otherwise the default `google/gemini-3.1-flash-image` is used. |
 | `AI_PROVIDER` | `src/lib/ai/index.ts` | No | `anthropic`, `gemini`, `mock` or `off`. See below. |
 | `NEXT_PUBLIC_SITE_URL` | `src/lib/site.ts` | No | Public address for canonical links, sitemap and share cards. Default `https://dawakraft.vercel.app`. |
 | `DEMO_PASSCODE` | `src/lib/ai/unlock.ts`, `src/app/api/demo-unlock/route.ts`, `src/lib/ai/access.ts` | **Yes. Never prefix with `NEXT_PUBLIC_`; never log or commit it.** | Optional online demo passcode that unlocks paid AI without sign-in. See "Online demo passcode". |
@@ -102,6 +104,25 @@ Upper/lower case and surrounding spaces are ignored.
 **Cost controls:** `paid: true`, so the same sign-in (or demo mode on your own computer only) and per-user rate limits apply as for Claude. Set a credit limit on the OpenRouter key.
 
 **Status:** code ready and covered by tests with a stubbed `fetch` (no test calls the real API). Accuracy on real cartons still needs checking.
+
+---
+
+## Gemini copywriter and lifestyle photo (promotional circular)
+
+**Purpose:** two extra routes for the promotional circular, served by the same provider layer (`src/lib/ai`).
+
+| Route | Provider method | Default model (override, `google/` only) | Signed-in limit | Passcode limit (per IP) |
+| --- | --- | --- | --- | --- |
+| `POST /api/write-copy` | `writeCopy` (anthropic, gemini, mock) | `google/gemini-3.7-flash` (`OPENROUTER_COPY_MODEL`) | 20 / 10 min | 10 / 10 min |
+| `POST /api/promo-photo` | `makePhoto` (gemini only) | `google/gemini-3.1-flash-image` (`OPENROUTER_IMAGE_MODEL`) | 6 / 10 min | 3 / 10 min |
+
+Both use `checkAiAccess` like `/api/read-box` (sign-in, local demo mode, or the demo passcode cookie for paid providers), `readJsonBody`, and the same OpenRouter call: pinned `provider` block, retries on 429/5xx, 402/403 → `out_of_credits` (HTTP 402). Usage is counted in `ai_usage` with kinds `copy` and `photo` (run `supabase/migrations/0004_promo.sql` first).
+
+**Copywriter** (`promo-copy.ts`): structured output (`json_schema`, strict) with `max_tokens` 6000. The prompt: trade-only copy for doctors and chemists in India in the style of Indian pharma visual aids; use only the composition, form and uses; one section per active ingredient (max 3) with short factual bullets; indications only from `uses`; never invent indications, studies, statistics, percentages, comparisons or approvals; never the banned words (cure, guarantee, 100%, miracle, permanent, no side effects, instant relief, best, safest, No. 1, #1, risk-free); avoid strong claims (prevents, complete, rapid, fast, quick, FDA, proven, safe, superior, maximum, potent, effective, significant, new generation); no emoji or exclamation marks. **Enforced on the server whatever the model returns:** limits (headline 60, banner 30, tagline 45, section title 40, 1-3 sections × 1-3 bullets of 90, up to 7 indications of 50), exclamation marks and emoji removed, and any indication not in `uses` dropped. The route then runs `promoClaims` and returns `{ copy, claims: { banned, strong } }`, so the UI can block banned words and ask the person to confirm strong claims. The mock returns clearly labelled sample copy (`meta.mock: true`, banner "SAMPLE COPY").
+
+In testing (one real call, Calcium Carbonate + Vitamin D3): HTTP 200 in 8.1 s, 723 input and 1,141 output tokens (Gemini thinks first), no banned words or strong claims; OpenRouter reported `usage.cost` 0 for this key (about $0.005 at list price).
+
+**Photo** (`promo-photo.ts`): chat completions with `modalities: ["image", "text"]` and `image_config: { aspect_ratio: "4:3" }`; the image comes back as a base64 data URL in `choices[0].message.images[0].image_url.url` and is returned as `{ mediaType, data }` (png, jpeg or webp). No image → `failed`; a safety stop → `refused`. **Safety rules in the prompt:** a fictional adult Indian person (or family) in a calm everyday scene picked from a fixed list by the uses or category (never distressing), natural soft light, subject on the right half of a landscape 4:3 frame with the left half plain for text; no text, letters, logos, watermarks, medicine packs, pills, syringes, blood, wounds, rashes, lesions or disease close-ups; no celebrities or real identifiable people. The user's text only selects the scene and is never copied into the prompt. Prompts are never logged. Claude and the mock have no `makePhoto`, so the route answers `photo_unavailable` (HTTP 501) before any cost, and the UI uses a colour background. **Cost:** image output is about $60 per million tokens (one 1K image is roughly 1,300 tokens, so around $0.08; check OpenRouter). **Status:** covered by tests with a stubbed fetch; no real image call has been made yet (the first one needs the owner's approval).
 
 ---
 

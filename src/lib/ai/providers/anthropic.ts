@@ -1,20 +1,25 @@
-// Server-only: the Claude provider. Reads box photos and sorts products into categories.
+// Server-only: the Claude provider. Reads box photos, sorts products into categories and writes
+// promotional copy. It cannot make photos (no makePhoto), so the photo route says photo_unavailable.
 // The API key is read from the server environment and never reaches the browser.
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { claudeConfigured } from "../../config";
 import { CATEGORIES } from "../../constants";
 import { boxReadPrompt } from "../box-read";
+import { copyPrompt, normalizeCopy } from "../promo-copy";
 import {
   AiError,
   BoxReadingSchema,
   CategoryListSchema,
+  PromoCopyDraftSchema,
   type AiMeta,
   type AiProvider,
   type BoxReadInput,
   type BoxReadOutput,
   type CategorizeOutput,
   type CategoryRequest,
+  type WriteCopyInput,
+  type WriteCopyOutput,
 } from "../types";
 
 const PROVIDER = "anthropic";
@@ -127,4 +132,23 @@ async function categorize(items: CategoryRequest[]): Promise<CategorizeOutput> {
   }
 }
 
-export const anthropicProvider: AiProvider = { id: PROVIDER, paid: true, readBox, categorize };
+async function writeCopy(input: WriteCopyInput): Promise<WriteCopyOutput> {
+  const started = Date.now();
+  try {
+    const response = await getClient().beta.messages.parse({
+      model: MODEL,
+      max_tokens: 6000,
+      betas: [FALLBACK_BETA],
+      fallbacks: "default",
+      output_config: { effort: "low", format: betaZodOutputFormat(PromoCopyDraftSchema) },
+      messages: [{ role: "user", content: copyPrompt(input) }],
+    });
+    const copy = normalizeCopy(unwrap(response), input);
+    if (!copy) throw new AiError("invalid_json", "The reply had no usable section");
+    return { data: copy, meta: metaFor("writeCopy", started, response.usage) };
+  } catch (error) {
+    throw toAiError(error);
+  }
+}
+
+export const anthropicProvider: AiProvider = { id: PROVIDER, paid: true, readBox, categorize, writeCopy };

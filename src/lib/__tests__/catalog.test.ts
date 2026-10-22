@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { runChecks } from "../compliance";
 import { TEMPLATES, USES_MAX } from "../constants";
 import { parseImport } from "../csv";
-import { EMPTY_DRAFT, asTemplate, draftToFields, productToDraft, toProduct, toProductRow, type ProductRow } from "../data/mappers";
+import { EMPTY_DRAFT, asTemplate, draftToFields, normalizeStoredProduct, productToDraft, toProduct, toProductRow, type ProductRow } from "../data/mappers";
+import { EMPTY_PROMO, type Promo } from "../promo";
+import type { Product } from "../types";
 
 const row: ProductRow = {
   id: "1", name: "Acipox- 400", composition: "Aciclovir 400mg", uses: "  Genital Herpes, Cold Sores, Shingles  ", form: "Tablet",
@@ -16,6 +18,25 @@ describe("catalogue card template", () => {
     expect(TEMPLATES[0]).toEqual(["catalog", "Catalogue card"]);
     expect(asTemplate("catalog")).toBe("catalog");
     expect(toProduct(row).template).toBe("catalog");
+  });
+});
+
+describe("demo-stored products", () => {
+  it("fill in fields saved before promo and uses existed", () => {
+    const old: Partial<Product> = { ...toProduct(row), template: "gone" as Product["template"] };
+    delete old.promo;
+    delete old.uses;
+    const p = normalizeStoredProduct(old as Product);
+    expect(p.promo).toEqual(EMPTY_PROMO);
+    expect(p.uses).toBe("");
+    expect(p.template).toBe("clean");
+    expect(p.name).toBe("Acipox- 400");
+  });
+
+  it("keep a saved promo, tidied", () => {
+    const p = normalizeStoredProduct({ ...toProduct(row), promo: { ...EMPTY_PROMO, headline: "  Hello  ", extra: 1 } as unknown as Promo });
+    expect(p.promo.headline).toBe("Hello");
+    expect("extra" in p.promo).toBe(false);
   });
 });
 

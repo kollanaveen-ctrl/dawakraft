@@ -5,19 +5,23 @@ import type { ProductFields } from "../types";
 
 export type Ctx = CanvasRenderingContext2D;
 export type Drawable = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
-export type Family = "display" | "body" | "mono" | "serif";
+export type Family = "display" | "body" | "mono" | "serif" | "promo" | "cond";
 
 const FALLBACK: Record<Family, string> = {
   display: '"Helvetica Neue", Arial, sans-serif',
   body: '"Segoe UI", Arial, sans-serif',
   mono: "Menlo, monospace",
   serif: "Georgia, serif",
+  promo: '"Arial Black", "Helvetica Neue", Arial, sans-serif',
+  cond: '"Arial Narrow", "Helvetica Neue", Arial, sans-serif',
 };
 const CSS_VAR: Record<Family, string> = {
   display: "--f-display",
   body: "--f-body",
   mono: "--f-mono",
   serif: "--f-serif",
+  promo: "--f-promo",
+  cond: "--f-cond",
 };
 
 let families: Record<Family, string> | null = null;
@@ -27,7 +31,14 @@ function family(f: Family): string {
   if (!families && typeof document !== "undefined") {
     const style = getComputedStyle(document.documentElement);
     const read = (k: Family) => style.getPropertyValue(CSS_VAR[k]).trim() || FALLBACK[k];
-    families = { display: read("display"), body: read("body"), mono: read("mono"), serif: read("serif") };
+    families = {
+      display: read("display"),
+      body: read("body"),
+      mono: read("mono"),
+      serif: read("serif"),
+      promo: read("promo"),
+      cond: read("cond"),
+    };
   }
   return families ? families[f] : FALLBACK[f];
 }
@@ -47,6 +58,13 @@ export async function fontsReady(): Promise<void> {
       document.fonts.load(font(600, 30, "serif")),
       document.fonts.load(font(700, 30, "serif")),
       document.fonts.load(font(400, 30, "serif", true)),
+      document.fonts.load(font(800, 40, "promo", true)),
+      document.fonts.load(font(900, 40, "promo", true)),
+      document.fonts.load(font(700, 40, "promo")),
+      document.fonts.load(font(500, 30, "cond")),
+      document.fonts.load(font(600, 30, "cond")),
+      document.fonts.load(font(700, 30, "cond")),
+      document.fonts.load(font(600, 30, "cond", true)),
     ]);
   } catch {
     // Fonts are a nicety: the canvas falls back to system fonts.

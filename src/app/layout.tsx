@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Barlow, Barlow_Condensed, Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import { RegisterSW } from "@/components/RegisterSW";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 import "./globals.css";
@@ -18,6 +18,9 @@ const serif = Source_Serif_4({
   style: ["normal", "italic"],
   preload: false,
 });
+// Heavy italic wordmarks and condensed copy for the Promo circular, like Indian pharma visual aids.
+const promo = Barlow({ variable: "--f-promo", subsets: ["latin"], weight: ["700", "800", "900"], style: ["normal", "italic"], preload: false });
+const cond = Barlow_Condensed({ variable: "--f-cond", subsets: ["latin"], weight: ["500", "600", "700"], style: ["normal", "italic"], preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -43,7 +46,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-IN" className={`${display.variable} ${body.variable} ${mono.variable} ${serif.variable} antialiased`}>
+    <html lang="en-IN" className={`${display.variable} ${body.variable} ${mono.variable} ${serif.variable} ${promo.variable} ${cond.variable} antialiased`}>
       <body>
         <a className="skip-link" href="#main">
           Skip to content

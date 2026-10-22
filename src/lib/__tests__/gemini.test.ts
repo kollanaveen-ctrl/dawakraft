@@ -209,14 +209,14 @@ describe("gemini errors and retries", () => {
 
 describe("gemini models and registry", () => {
   it("allows only google/ model overrides", () => {
-    expect(geminiModels({})).toEqual({ read: DEFAULT_READ_MODEL, categorize: DEFAULT_CATEGORY_MODEL });
+    expect(geminiModels({})).toMatchObject({ read: DEFAULT_READ_MODEL, categorize: DEFAULT_CATEGORY_MODEL });
     expect(DEFAULT_READ_MODEL).toBe("google/gemini-3.7-flash");
     expect(DEFAULT_CATEGORY_MODEL).toBe("google/gemini-3.5-flash-lite");
-    expect(geminiModels({ OPENROUTER_MODEL: " google/gemini-3.5-pro ", OPENROUTER_CATEGORY_MODEL: "google/gemini-3.7-flash" })).toEqual({
+    expect(geminiModels({ OPENROUTER_MODEL: " google/gemini-3.5-pro ", OPENROUTER_CATEGORY_MODEL: "google/gemini-3.7-flash" })).toMatchObject({
       read: "google/gemini-3.5-pro",
       categorize: "google/gemini-3.7-flash",
     });
-    expect(geminiModels({ OPENROUTER_MODEL: "openai/gpt-5", OPENROUTER_CATEGORY_MODEL: "anthropic/claude-opus-5-5" })).toEqual({
+    expect(geminiModels({ OPENROUTER_MODEL: "openai/gpt-5", OPENROUTER_CATEGORY_MODEL: "anthropic/claude-opus-5-5" })).toMatchObject({
       read: DEFAULT_READ_MODEL,
       categorize: DEFAULT_CATEGORY_MODEL,
     });

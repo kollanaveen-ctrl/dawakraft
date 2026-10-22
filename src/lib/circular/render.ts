@@ -1,8 +1,12 @@
-// The circular layouts (Catalogue card, Clean, Side band, Spotlight), drawn at 1080×1350.
+// The circular layouts: Catalogue card, Clean, Side band and Spotlight at 1080×1350, and the
+// landscape Promo circular at 1600×1228 (promo/render.ts).
 import { mix, rgba, textOn } from "../color";
 import { TRADE_LINE, type TemplateKey } from "../constants";
+import { EMPTY_PROMO, type Promo } from "../promo";
 import type { Company, ProductFields } from "../types";
 import { drawCatalogCard } from "./catalogCard";
+import { PROMO_H, PROMO_W, drawPromo } from "./promo/render";
+import { themeByKey, themeFromImage } from "./promo/theme";
 import {
   type Ctx,
   type Drawable,
@@ -27,7 +31,15 @@ export type CircularInput = {
   template: TemplateKey;
   image: Drawable | null;
   logo: Drawable | null;
+  /** Promo circular only: its content and lifestyle photo. */
+  promo?: Promo;
+  photo?: Drawable | null;
 };
+
+/** The pixel size each layout is drawn at. */
+export function circularSize(template: TemplateKey): { width: number; height: number } {
+  return template === "promo" ? { width: PROMO_W, height: PROMO_H } : { width: CIRCULAR_W, height: CIRCULAR_H };
+}
 
 function footer(ctx: Ctx, c: Company, top: number, bg: string, fg: string) {
   ctx.fillStyle = bg;
@@ -208,12 +220,17 @@ function drawClean(ctx: Ctx, { product: p, company: c, image, logo }: CircularIn
 export function renderCircular(canvas: HTMLCanvasElement, input: CircularInput): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  const scale = canvas.width / CIRCULAR_W;
+  const size = circularSize(input.template);
+  const scale = canvas.width / size.width;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  ctx.clearRect(0, 0, CIRCULAR_W, CIRCULAR_H);
+  ctx.clearRect(0, 0, size.width, size.height);
   ctx.textBaseline = "alphabetic";
   const brand = input.company.brandColor || "#0B7A63";
-  if (input.template === "catalog") drawCatalogCard(ctx, input, CIRCULAR_W, CIRCULAR_H);
+  if (input.template === "promo") {
+    const promo = input.promo ?? EMPTY_PROMO;
+    const theme = themeByKey(promo.theme) ?? themeFromImage(input.image);
+    drawPromo(ctx, { ...input, promo, theme, photo: input.photo ?? null });
+  } else if (input.template === "catalog") drawCatalogCard(ctx, input, CIRCULAR_W, CIRCULAR_H);
   else if (input.template === "band") drawBand(ctx, input, brand);
   else if (input.template === "spotlight") drawSpotlight(ctx, input, brand);
   else drawClean(ctx, input, brand);
@@ -223,8 +240,9 @@ export function renderCircular(canvas: HTMLCanvasElement, input: CircularInput):
 /** Full-size PNG of a circular, for download and sharing. */
 export function circularBlob(input: CircularInput): Promise<Blob | null> {
   const canvas = document.createElement("canvas");
-  canvas.width = CIRCULAR_W;
-  canvas.height = CIRCULAR_H;
+  const size = circularSize(input.template);
+  canvas.width = size.width;
+  canvas.height = size.height;
   renderCircular(canvas, input);
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }

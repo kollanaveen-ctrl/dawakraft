@@ -6,7 +6,7 @@ import { demoMode } from "../config";
 import { supabaseBrowser } from "../supabase/client";
 import type { Company, Product } from "../types";
 import * as demo from "./demo-store";
-import { toCompany, toCompanyRow, toProduct, toProductRow, type CompanyRow, type ProductRow } from "./mappers";
+import { normalizeStoredProduct, toCompany, toCompanyRow, toProduct, toProductRow, type CompanyRow, type ProductRow } from "./mappers";
 
 const BUCKET = "media";
 const INSERT_CHUNK = 100;
@@ -46,7 +46,7 @@ export async function signOut(): Promise<void> {
 }
 
 export async function listProducts(): Promise<Product[]> {
-  if (demoMode) return demo.listProducts();
+  if (demoMode) return (await demo.listProducts()).map(normalizeStoredProduct);
   const rows = check(await db().from("products").select("*").order("created_at", { ascending: false }));
   return (rows as ProductRow[]).map(toProduct);
 }

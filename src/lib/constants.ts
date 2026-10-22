@@ -39,6 +39,7 @@ export const BRAND_COLOURS = ["#0B7A63", "#1F4E8C", "#7A1F4E", "#B4461E", "#4B3A
 
 export const TEMPLATES = [
   ["catalog", "Catalogue card"],
+  ["promo", "Promo circular"],
   ["clean", "Clean"],
   ["band", "Side band"],
   ["spotlight", "Spotlight"],

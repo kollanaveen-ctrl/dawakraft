@@ -1,26 +1,39 @@
 // Server-only: the Google Gemini provider, called only through OpenRouter (never Google AI Studio
-// or Vertex directly). Reads box photos and sorts products into categories.
+// or Vertex directly). Reads box photos, sorts products into categories, writes promotional copy
+// and makes the circular's lifestyle photo (the only provider that can).
 // The key lives only in the server environment (OPENROUTER_API_KEY) and is never logged.
 import { z } from "zod";
 import { isRealValue } from "../../config";
 import { CATEGORIES } from "../../constants";
 import { boxReadPrompt } from "../box-read";
+import { copyPrompt, normalizeCopy } from "../promo-copy";
+import { PHOTO_ASPECT_RATIO, photoPrompt } from "../promo-photo";
 import {
   AiError,
   BoxReadingSchema,
   CategoryListSchema,
+  PHOTO_MEDIA_TYPES,
+  PromoCopyDraftSchema,
   type AiMeta,
   type AiProvider,
   type BoxReadInput,
   type BoxReadOutput,
   type CategorizeOutput,
   type CategoryRequest,
+  type PromoPhoto,
+  type PromoPhotoInput,
+  type PromoPhotoOutput,
+  type WriteCopyInput,
+  type WriteCopyOutput,
 } from "../types";
 
 const PROVIDER = "gemini";
 export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 export const DEFAULT_READ_MODEL = "google/gemini-3.7-flash";
 export const DEFAULT_CATEGORY_MODEL = "google/gemini-3.5-flash-lite";
+/** The copywriter uses the same default text model as box reading. */
+export const DEFAULT_COPY_MODEL = DEFAULT_READ_MODEL;
+export const DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image";
 const GOOGLE_PREFIX = "google/";
 
 /** Sent with every request: Google's own endpoints only, no silent fallback to another vendor. */
@@ -33,6 +46,8 @@ export const PROVIDER_ROUTING = {
 // Gemini spends tokens on thinking before it answers; too small a cap returns content null.
 const READ_MAX_TOKENS = 8000;
 const CATEGORY_MAX_TOKENS = 16000; // up to 150 products in one answer
+const COPY_MAX_TOKENS = 6000; // a short JSON answer after thinking
+const PHOTO_MAX_TOKENS = 8000; // one image is roughly 1,300 output tokens, plus thinking
 const TIMEOUT_MS = 90_000; // per attempt
 const MAX_RETRIES = 3;
 const BASE_BACKOFF_MS = 1000;
@@ -46,10 +61,12 @@ export function googleModel(override: string | undefined, fallback: string): str
   return asked && asked.startsWith(GOOGLE_PREFIX) ? asked : fallback;
 }
 
-export function geminiModels(env: Env = process.env): { read: string; categorize: string } {
+export function geminiModels(env: Env = process.env): { read: string; categorize: string; copy: string; image: string } {
   return {
     read: googleModel(env.OPENROUTER_MODEL, DEFAULT_READ_MODEL),
     categorize: googleModel(env.OPENROUTER_CATEGORY_MODEL, DEFAULT_CATEGORY_MODEL),
+    copy: googleModel(env.OPENROUTER_COPY_MODEL, DEFAULT_COPY_MODEL),
+    image: googleModel(env.OPENROUTER_IMAGE_MODEL, DEFAULT_IMAGE_MODEL),
   };
 }
 
@@ -73,6 +90,7 @@ function strictSchema(node: unknown): unknown {
 
 export const BOX_READING_JSON_SCHEMA = strictSchema(z.toJSONSchema(BoxReadingSchema));
 export const CATEGORY_LIST_JSON_SCHEMA = strictSchema(z.toJSONSchema(CategoryListSchema));
+export const PROMO_COPY_JSON_SCHEMA = strictSchema(z.toJSONSchema(PromoCopyDraftSchema));
 
 const responseFormat = (name: string, schema: unknown) => ({
   type: "json_schema" as const,
@@ -87,7 +105,14 @@ const ChatResponseSchema = z.object({
     .array(
       z.object({
         finish_reason: z.string().nullable().optional(),
-        message: z.object({ content: z.string().nullable().optional() }).optional(),
+        native_finish_reason: z.string().nullable().optional(),
+        message: z
+          .object({
+            content: z.string().nullable().optional(),
+            refusal: z.string().nullable().optional(),
+            images: z.array(z.object({ image_url: z.object({ url: z.string() }) })).nullable().optional(),
+          })
+          .optional(),
       }),
     )
     .optional(),
@@ -195,6 +220,25 @@ function parseContent<T>(response: ChatResponse, schema: z.ZodType<T>): T {
   return parsed.data;
 }
 
+const DATA_URL = /^data:(image\/[a-z+.-]+);base64,([A-Za-z0-9+/=]+)$/;
+
+/** The first generated image (message.images[0].image_url.url, a base64 data URL) as a PromoPhoto. */
+export function parseImage(response: ChatResponse): PromoPhoto {
+  if (response.error) throw new AiError("failed", `OpenRouter error: ${response.error.message ?? "unknown"}`);
+  const choice = response.choices?.[0];
+  const blocked = /safety|prohibited|blocklist|content_filter|recitation/i;
+  if (choice?.finish_reason === "content_filter" || blocked.test(choice?.native_finish_reason ?? "") || choice?.message?.refusal) {
+    throw new AiError("refused", "The model declined to make this picture");
+  }
+  const url = choice?.message?.images?.[0]?.image_url.url;
+  if (!url) throw new AiError("failed", "The reply had no image");
+  const match = DATA_URL.exec(url.trim());
+  if (!match) throw new AiError("failed", "The image was not a base64 data URL");
+  const mediaType = match[1] === "image/jpg" ? "image/jpeg" : match[1];
+  if (!(PHOTO_MEDIA_TYPES as readonly string[]).includes(mediaType)) throw new AiError("failed", `Unexpected image type ${mediaType}`);
+  return { mediaType: mediaType as PromoPhoto["mediaType"], data: match[2] };
+}
+
 /** Build the meta for a finished call and log usage. Server logs only; never the key. */
 function metaFor(task: string, requestedModel: string, started: number, response: ChatResponse): AiMeta {
   const inputTokens = Math.max(0, Math.round(response.usage?.prompt_tokens ?? 0));
@@ -270,7 +314,46 @@ export function createGeminiProvider(deps: Deps = {}): AiProvider {
     return { data: parseContent(response, CategoryListSchema).items, meta: metaFor("categorize", model, started, response) };
   }
 
-  return { id: PROVIDER, paid: true, readBox, categorize };
+  async function writeCopy(input: WriteCopyInput): Promise<WriteCopyOutput> {
+    const started = Date.now();
+    const d = resolve();
+    const model = geminiModels(d.env).copy;
+    const response = await postChat(
+      "writeCopy",
+      {
+        model,
+        provider: PROVIDER_ROUTING,
+        max_tokens: COPY_MAX_TOKENS,
+        response_format: responseFormat("promo_copy", PROMO_COPY_JSON_SCHEMA),
+        messages: [{ role: "user", content: copyPrompt(input) }],
+      },
+      d,
+    );
+    const copy = normalizeCopy(parseContent(response, PromoCopyDraftSchema), input);
+    if (!copy) throw new AiError("invalid_json", "The reply had no usable section");
+    return { data: copy, meta: metaFor("writeCopy", model, started, response) };
+  }
+
+  async function makePhoto(input: PromoPhotoInput): Promise<PromoPhotoOutput> {
+    const started = Date.now();
+    const d = resolve();
+    const model = geminiModels(d.env).image;
+    const response = await postChat(
+      "makePhoto",
+      {
+        model,
+        provider: PROVIDER_ROUTING,
+        max_tokens: PHOTO_MAX_TOKENS,
+        modalities: ["image", "text"],
+        image_config: { aspect_ratio: PHOTO_ASPECT_RATIO },
+        messages: [{ role: "user", content: photoPrompt(input) }],
+      },
+      d,
+    );
+    return { data: parseImage(response), meta: metaFor("makePhoto", model, started, response) };
+  }
+
+  return { id: PROVIDER, paid: true, readBox, categorize, writeCopy, makePhoto };
 }
 
 export const geminiProvider = createGeminiProvider();

@@ -17,6 +17,7 @@ const STATUS: Record<AiError["code"], number> = {
   refused: 422,
   failed: 502,
   out_of_credits: 402,
+  photo_unavailable: 501,
 };
 
 export async function POST(request: Request) {

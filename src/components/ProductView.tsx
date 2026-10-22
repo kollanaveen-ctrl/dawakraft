@@ -7,6 +7,7 @@ import { effectiveHighlight, isNewLaunch } from "@/lib/segments";
 import type { TemplateKey } from "@/lib/constants";
 import * as repo from "@/lib/data/repo";
 import { mrpText, shareText, slug } from "@/lib/format";
+import { claimsConfirmed, promoClaims } from "@/lib/promo";
 import { copyText, downloadBlob, isIOS, shareImage, whatsappLink } from "@/lib/share";
 import type { Product } from "@/lib/types";
 import { fontsReady } from "@/lib/circular/draw";
@@ -38,6 +39,7 @@ export function ProductView({ id }: { id: string }) {
   const product = products.find((p) => p.id === id);
   const image = useMediaImage(product?.imagePath);
   const logo = useMediaImage(company.logoPath);
+  const photo = useMediaImage(product?.promo.photoPath);
   const [template, setTemplate] = useState<TemplateKey | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [shownUrl, setShownUrl] = useState<string | null>(null);
@@ -55,14 +57,14 @@ export function ProductView({ id }: { id: string }) {
       if (live) setBlob(null); // never hand out the previous layout while the new one renders
     });
     fontsReady()
-      .then(() => circularBlob({ product: shown, company, template: tpl, image, logo }))
+      .then(() => circularBlob({ product: shown, company, template: tpl, image, logo, promo: product?.promo, photo }))
       .then((b) => {
         if (live) setBlob(b);
       });
     return () => {
       live = false;
     };
-  }, [shown, company, tpl, image, logo]);
+  }, [shown, company, tpl, image, logo, product?.promo, photo]);
 
   useEffect(() => () => {
     if (shownUrl) URL.revokeObjectURL(shownUrl);
@@ -82,6 +84,16 @@ export function ProductView({ id }: { id: string }) {
 
   const p = product;
   const message = shareText(shown, company);
+  // The Promo circular can't be shared with banned words, or before its strong claims are confirmed.
+  const isPromo = tpl === "promo";
+  const claims = promoClaims(p.promo);
+  const promoBlock = !isPromo
+    ? ""
+    : claims.banned.length
+      ? `Remove claim words from the promo text first: ${claims.banned.join(", ")}.`
+      : !claimsConfirmed(p.promo)
+        ? `Confirm the strong claims (${claims.strong.join(", ")}) in the promo editor first.`
+        : "";
   const filename = slug(p.name) + "-circular.png";
 
   async function changeTemplate(t: TemplateKey) {
@@ -99,6 +111,7 @@ export function ProductView({ id }: { id: string }) {
   }
 
   function handleDownload() {
+    if (promoBlock) return toast(promoBlock);
     if (!blob) return toast("Couldn't create the image");
     if (isIOS()) return showImage(blob);
     downloadBlob(blob, filename);
@@ -106,6 +119,7 @@ export function ProductView({ id }: { id: string }) {
   }
 
   async function handleShare() {
+    if (promoBlock) return toast(promoBlock);
     if (blob) {
       const outcome = await shareImage(blob, filename, message);
       if (outcome !== "unsupported") return;
@@ -142,7 +156,17 @@ export function ProductView({ id }: { id: string }) {
               <p className="muted" style={{ marginTop: 6 }}>Press and hold the image to save it.</p>
             </>
           ) : (
-            <CircularCanvas product={shown} company={company} template={tpl} image={image} logo={logo} label="Product circular" />
+            <CircularCanvas
+              product={shown}
+              company={company}
+              template={tpl}
+              image={image}
+              logo={logo}
+              promo={p.promo}
+              photo={photo}
+              width={tpl === "promo" ? 1600 : undefined}
+              label="Product circular"
+            />
           )}
         </div>
         <div className="stack">
@@ -152,6 +176,14 @@ export function ProductView({ id }: { id: string }) {
             <p className="muted">{p.composition}</p>
           </div>
           <TemplatePicker name="ptpl" value={tpl} onChange={changeTemplate} />
+          {isPromo && (
+            <div className="row">
+              <Link className="btn primary" href={`/product/${p.id}/promo`}>
+                Edit promo content
+              </Link>
+              {promoBlock && <span className="status err">{promoBlock}</span>}
+            </div>
+          )}
           <div className="row">
             <button className="btn primary" type="button" onClick={handleDownload} disabled={!blob}>
               {isIOSSafe() ? "Show image to save" : "Download image"}

@@ -11,6 +11,7 @@ import type { Product } from "@/lib/types";
 import { CircularCanvas } from "./CircularCanvas";
 import { useData, useMediaImage } from "./DataProvider";
 import { useToast } from "./Toast";
+import { EMPTY_PROMO } from "@/lib/promo";
 
 const CARD_CANVAS_W = 324;
 
@@ -23,12 +24,21 @@ const LAUNCH_CHIPS: [LaunchFilter, string][] = [
 function ProductCard({ product: p, logo }: { product: Product; logo: HTMLImageElement | null }) {
   const { company } = useData();
   const image = useMediaImage(p.imagePath);
+  const isPromo = p.template === "promo";
+  const photo = useMediaImage(isPromo ? p.promo.photoPath : null);
   const fields = useMemo(() => ({ ...p, highlight: effectiveHighlight(p) }), [p]);
   const priceLine = [p.packSize, p.mrp ? mrpText(p.mrp) : ""].filter(Boolean).join(" · ");
   const fresh = isNewLaunch(p);
   return (
     <Link className="pcard" href={`/product/${p.id}`}>
-      <CircularCanvas product={fields} company={company} template={p.template} image={image} logo={logo} width={CARD_CANVAS_W} decorative />
+      {isPromo ? (
+        // Landscape: centred in the same portrait slot so the grid rows stay even.
+        <span className="pcard-wide">
+          <CircularCanvas product={fields} company={company} template="promo" image={image} logo={logo} promo={p.promo} photo={photo} width={CARD_CANVAS_W} decorative />
+        </span>
+      ) : (
+        <CircularCanvas product={fields} company={company} template={p.template} image={image} logo={logo} width={CARD_CANVAS_W} decorative />
+      )}
       <span className="meta">
         {(p.example || fresh) && (
           <span className="tags">
@@ -106,6 +116,7 @@ export function Catalog() {
       const saved = await repo.saveProduct({
         ...SAMPLE,
         id: crypto.randomUUID(),
+        promo: EMPTY_PROMO,
         template: "clean",
         imagePath: null,
         example: true,

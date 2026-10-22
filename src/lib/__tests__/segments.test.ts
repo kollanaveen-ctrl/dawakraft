@@ -12,6 +12,7 @@ import {
   nextLaunchedAt,
 } from "../segments";
 import type { Product } from "../types";
+import { EMPTY_PROMO } from "../promo";
 
 const NOW = Date.parse("2026-10-21T09:00:00.000Z");
 const daysAgo = (d: number) => new Date(NOW - d * 86_400_000).toISOString();
@@ -20,7 +21,7 @@ function product(over: Partial<Product>): Product {
   return {
     id: "p", name: "Exampol 650", composition: "Paracetamol IP 650 mg", uses: "", form: "Tablet", packSize: "10 x 15", mrp: 32.5,
     schedule: "None", manufacturer: "", marketedBy: "", storage: "", category: "Analgesic & antipyretic", scheme: "",
-    highlight: "", template: "clean", imagePath: null, example: false, launchedAt: null,
+    highlight: "", template: "clean", promo: EMPTY_PROMO, imagePath: null, example: false, launchedAt: null,
     createdAt: daysAgo(1), updatedAt: daysAgo(1), ...over,
   };
 }

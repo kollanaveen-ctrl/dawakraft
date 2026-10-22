@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { financialYear, paginate, sectionOf } from "../catalog/pages";
 import type { Product } from "../types";
+import { EMPTY_PROMO } from "../promo";
 
 function product(name: string, form: string, category = "Other"): Product {
   return {
@@ -19,6 +20,7 @@ function product(name: string, form: string, category = "Other"): Product {
     scheme: "",
     highlight: "",
     template: "catalog",
+    promo: EMPTY_PROMO,
     imagePath: null,
     example: false,
     launchedAt: null,

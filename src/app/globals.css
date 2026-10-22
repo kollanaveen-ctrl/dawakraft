@@ -148,6 +148,8 @@
   .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; text-align: left; display: flex; flex-direction: column; color: inherit; }
   .pcard:hover { border-color: var(--muted); }
   .pcard canvas { width: 100%; height: auto; aspect-ratio: 1080 / 1350; display: block; background: var(--sunken); }
+  .pcard-wide { aspect-ratio: 1080 / 1350; display: grid; place-items: center; background: var(--sunken); }
+  .pcard .pcard-wide canvas { aspect-ratio: auto; }
   .pcard .meta { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .pcard .meta strong { font-family: var(--f-display); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pcard .meta span { font-size: 0.82rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -165,6 +167,11 @@
   .two { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 18px; align-items: start; }
   @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
   .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  /* Promo circular editor: wide preview, field grid, one block per ingredient tag. */
+  .promo-preview canvas { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 8px 24px rgb(0 0 0 / 0.1); }
+  .promo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .promo-section { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+  .promo-section .btn { justify-self: start; }
   /* Catalogue PDF: options form and page previews (each page keeps its printed proportions). */
   .cat-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
   .cat-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
@@ -209,6 +216,7 @@
   .tpls label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
   .tpls input { accent-color: var(--accent); }
   .preview canvas, .shown-img { width: 100%; max-width: 440px; height: auto; aspect-ratio: 1080 / 1350; border-radius: 10px; border: 1px solid var(--line); display: block; background: var(--sunken); }
+  .preview.wide canvas { max-width: none; aspect-ratio: auto; }
   .wizard-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
   .status { font-size: 0.86rem; color: var(--muted); min-height: 1.4em; }
   .status.err { color: var(--bad); }

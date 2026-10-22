@@ -2,6 +2,7 @@
 import { isHexColour } from "../color";
 import { BRAND_COLOURS, TEMPLATES, type TemplateKey } from "../constants";
 import { parseMrp } from "../format";
+import { parsePromo, type Promo } from "../promo";
 import type { Company, DraftFields, Product } from "../types";
 
 export type ProductRow = {
@@ -20,6 +21,7 @@ export type ProductRow = {
   scheme: string;
   highlight: string;
   template: string;
+  promo?: Promo | null;
   image_path: string | null;
   example: boolean;
   launched_at: string | null;
@@ -61,11 +63,23 @@ export function toProduct(r: ProductRow): Product {
     scheme: r.scheme ?? "",
     highlight: r.highlight ?? "",
     template: asTemplate(r.template),
+    promo: parsePromo(r.promo),
     imagePath: r.image_path,
     example: Boolean(r.example),
     launchedAt: r.launched_at ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+  };
+}
+
+/** A product read back from demo storage, which may predate newer fields (promo, uses): defaults filled in. */
+export function normalizeStoredProduct(p: Product): Product {
+  return {
+    ...p,
+    uses: p.uses ?? "",
+    highlight: p.highlight ?? "",
+    template: asTemplate(p.template),
+    promo: parsePromo(p.promo),
   };
 }
 
@@ -86,6 +100,7 @@ export function toProductRow(p: Product): ProductRow {
     scheme: p.scheme.trim(),
     highlight: p.highlight.trim(),
     template: p.template,
+    promo: parsePromo(p.promo),
     image_path: p.imagePath,
     example: p.example,
     launched_at: p.launchedAt,

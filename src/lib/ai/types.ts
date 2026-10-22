@@ -6,7 +6,19 @@ import { AI_CATEGORY_BATCH, CATEGORIES, FORMS, IMAGE_ROLES, MAX_AI_IMAGES, SCHED
 
 // ---------- Errors ----------
 
-export type AiErrorCode = "not_configured" | "rate_limited" | "image_rejected" | "invalid_json" | "refused" | "failed" | "out_of_credits";
+/**
+ * `photo_unavailable`: the active provider cannot make pictures (only Gemini can); the UI falls
+ * back to a colour background. Every other code means the same for every route.
+ */
+export type AiErrorCode =
+  | "not_configured"
+  | "rate_limited"
+  | "image_rejected"
+  | "invalid_json"
+  | "refused"
+  | "failed"
+  | "out_of_credits"
+  | "photo_unavailable";
 
 export class AiError extends Error {
   constructor(public readonly code: AiErrorCode, message: string) {
@@ -43,6 +55,26 @@ export const CategorizeRequestSchema = z.object({
   items: z.array(CategoryRequestSchema).min(1).max(AI_CATEGORY_BATCH),
 });
 
+/** POST /api/write-copy: the product facts the copywriter may use (and nothing else). */
+export const WriteCopyRequestSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  composition: z.string().max(500),
+  form: z.string().max(40),
+  uses: z.string().max(200),
+  category: z.string().max(60),
+  schedule: z.string().max(10),
+});
+export type WriteCopyInput = z.infer<typeof WriteCopyRequestSchema>;
+
+/** POST /api/promo-photo: only picks the scene; none of this text is drawn in the picture. */
+export const PromoPhotoRequestSchema = z.object({
+  name: z.string().max(120),
+  uses: z.string().max(200),
+  category: z.string().max(60),
+  form: z.string().max(40),
+});
+export type PromoPhotoInput = z.infer<typeof PromoPhotoRequestSchema>;
+
 // ---------- Readings ----------
 
 /**
@@ -78,6 +110,68 @@ export type CategoryItem = z.infer<typeof CategoryItemSchema>;
 
 export const CategoryListSchema = z.object({ items: z.array(CategoryItemSchema) });
 
+// ---------- Promotional copy ----------
+
+/** Length limits of AI-written copy (tighter than PROMO_LIMITS in promo.ts, so it always fits). */
+export const COPY_LIMITS = {
+  headline: 60,
+  banner: 30,
+  tagline: 45,
+  sectionTitle: 40,
+  bullet: 90,
+  indication: 50,
+  sections: 3,
+  bullets: 3,
+  indications: 7,
+} as const;
+
+/**
+ * What the model is asked to return. No length limits here (structured output support for
+ * maxLength varies); the server trims the draft with normalizeCopy() into PromoCopySchema.
+ */
+export const PromoCopyDraftSchema = z.object({
+  headline: z.string(),
+  banner: z.string(),
+  tagline: z.string(),
+  sections: z.array(z.object({ title: z.string(), bullets: z.array(z.string()) })),
+  indications: z.array(z.string()),
+});
+export type PromoCopyDraft = z.infer<typeof PromoCopyDraftSchema>;
+
+/** The copy the route returns, every limit enforced. Maps onto Promo (promo.ts) field for field. */
+export const PromoCopySchema = z.object({
+  headline: z.string().max(COPY_LIMITS.headline),
+  banner: z.string().max(COPY_LIMITS.banner),
+  tagline: z.string().max(COPY_LIMITS.tagline),
+  sections: z
+    .array(
+      z.object({
+        title: z.string().max(COPY_LIMITS.sectionTitle),
+        bullets: z.array(z.string().min(1).max(COPY_LIMITS.bullet)).min(1).max(COPY_LIMITS.bullets),
+      }),
+    )
+    .min(1)
+    .max(COPY_LIMITS.sections),
+  indications: z.array(z.string().min(1).max(COPY_LIMITS.indication)).max(COPY_LIMITS.indications),
+});
+export type PromoCopy = z.infer<typeof PromoCopySchema>;
+
+/** promoClaims() of the copy: banned words (block sharing) and strong claims (need confirming). */
+export const CopyClaimsSchema = z.object({ banned: z.array(z.string()), strong: z.array(z.string()) });
+
+/** `data` of a successful /api/write-copy answer. */
+export const WriteCopyDataSchema = z.object({ copy: PromoCopySchema, claims: CopyClaimsSchema });
+export type WriteCopyData = z.infer<typeof WriteCopyDataSchema>;
+
+export const PHOTO_MEDIA_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+
+/** `data` of a successful /api/promo-photo answer: the picture as plain base64 (no data: prefix). */
+export const PromoPhotoSchema = z.object({
+  mediaType: z.enum(PHOTO_MEDIA_TYPES),
+  data: z.string().min(1).regex(/^[A-Za-z0-9+/=]+$/),
+});
+export type PromoPhoto = z.infer<typeof PromoPhotoSchema>;
+
 // ---------- Metadata and response envelopes ----------
 
 export const AiMetaSchema = z.object({
@@ -110,10 +204,26 @@ export const CategorizeResponseSchema = z.discriminatedUnion("ok", [
 ]);
 export type CategorizeResponse = z.infer<typeof CategorizeResponseSchema>;
 
+/** { ok: true, data: { copy, claims }, meta } | { ok: false, error }. meta.mock true means "Sample copy". */
+export const WriteCopyResponseSchema = z.discriminatedUnion("ok", [
+  z.object({ ok: z.literal(true), data: WriteCopyDataSchema, meta: AiMetaSchema }),
+  ErrorEnvelope,
+]);
+export type WriteCopyResponse = z.infer<typeof WriteCopyResponseSchema>;
+
+/** { ok: true, data: { mediaType, data }, meta } | { ok: false, error }. */
+export const PromoPhotoResponseSchema = z.discriminatedUnion("ok", [
+  z.object({ ok: z.literal(true), data: PromoPhotoSchema, meta: AiMetaSchema }),
+  ErrorEnvelope,
+]);
+export type PromoPhotoResponse = z.infer<typeof PromoPhotoResponseSchema>;
+
 // ---------- Provider interfaces ----------
 
 export type BoxReadOutput = { data: BoxReading; meta: AiMeta };
 export type CategorizeOutput = { data: CategoryItem[]; meta: AiMeta };
+export type WriteCopyOutput = { data: PromoCopy; meta: AiMeta };
+export type PromoPhotoOutput = { data: PromoPhoto; meta: AiMeta };
 
 export interface BoxReader {
   readBox(input: BoxReadInput): Promise<BoxReadOutput>;
@@ -123,8 +233,18 @@ export interface Categorizer {
   categorize(items: CategoryRequest[]): Promise<CategorizeOutput>;
 }
 
-/** A provider reads boxes and sorts categories. Paid providers need sign-in and rate limits. */
-export interface AiProvider extends BoxReader, Categorizer {
+export interface Copywriter {
+  /** Trade-only promotional copy built only from the given facts, already trimmed to COPY_LIMITS. */
+  writeCopy(input: WriteCopyInput): Promise<WriteCopyOutput>;
+}
+
+export interface PhotoMaker {
+  /** A landscape 4:3 lifestyle photo, subject on the right. Optional: absent means photo_unavailable. */
+  makePhoto?(input: PromoPhotoInput): Promise<PromoPhotoOutput>;
+}
+
+/** A provider reads boxes, sorts categories and writes copy; some also make photos. Paid providers need sign-in and rate limits. */
+export interface AiProvider extends BoxReader, Categorizer, Copywriter, PhotoMaker {
   readonly id: string;
   /** True when a call costs money: the routes then require sign-in and apply rate limits. */
   readonly paid: boolean;

@@ -16,7 +16,8 @@ export function allow(key: string, limit: number, windowMs: number, now = Date.n
   return true;
 }
 
-export type AiKind = "read" | "sort";
+/** Matches the ai_usage.kind check (0004_promo.sql). */
+export type AiKind = "read" | "sort" | "copy" | "photo";
 
 /**
  * The real limit, shared by every server instance. It records this call first and then counts,

@@ -2,6 +2,7 @@
 
 const PRODUCT_MAX_SIDE = 1080;
 const LOGO_MAX_SIDE = 240;
+const PHOTO_MAX_SIDE = 1600;
 const AI_MAX_SIDE = 1280;
 const AI_QUALITY = 0.82;
 
@@ -47,6 +48,24 @@ export async function productImageBlob(cv: HTMLCanvasElement): Promise<Blob> {
   const out = scaled(cv, PRODUCT_MAX_SIDE);
   const webp = await toBlob(out, "image/webp", 0.85);
   return webp.type === "image/webp" ? webp : toBlob(out, "image/png");
+}
+
+/** A lifestyle photo for the Promo circular: at most 1600 px on its long side, as a JPEG. */
+export async function photoBlob(src: Blob): Promise<Blob> {
+  const img = await fileToImage(src);
+  // Drawn straight at the target size (no full-size canvas for a large camera photo).
+  const s = Math.min(1, PHOTO_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight, 1));
+  const cv = document.createElement("canvas");
+  cv.width = Math.max(1, Math.round(img.naturalWidth * s));
+  cv.height = Math.max(1, Math.round(img.naturalHeight * s));
+  const x = cv.getContext("2d");
+  if (x) {
+    // JPEG has no transparency: a transparent PNG would turn black without a white backing.
+    x.fillStyle = "#FFFFFF";
+    x.fillRect(0, 0, cv.width, cv.height);
+    x.drawImage(img, 0, 0, cv.width, cv.height);
+  }
+  return toBlob(cv, "image/jpeg", 0.86);
 }
 
 export async function logoBlob(file: File): Promise<Blob> {

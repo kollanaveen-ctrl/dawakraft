@@ -8,6 +8,8 @@ import { EMPTY_COMPANY } from "@/lib/data/mappers";
 import { composePackShot } from "@/lib/image/packshot";
 
 const CYCLE_MS = 3800;
+// The Promo circular is landscape and needs its own content, so the portrait hero skips it.
+const HERO_TEMPLATES = TEMPLATES.filter(([k]) => k !== "promo");
 const COMPANY = {
   ...EMPTY_COMPANY,
   name: "Sri Balaji Pharma",
@@ -51,16 +53,16 @@ export function HeroCircular() {
     );
     Promise.resolve().then(() => setImage(shot));
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = setInterval(() => setI((n) => (n + 1) % TEMPLATES.length), CYCLE_MS);
+    const t = setInterval(() => setI((n) => (n + 1) % HERO_TEMPLATES.length), CYCLE_MS);
     return () => clearInterval(t);
   }, []);
 
-  const template: TemplateKey = TEMPLATES[i][0];
+  const template: TemplateKey = HERO_TEMPLATES[i][0];
   return (
     <figure className="hero-art">
       <CircularCanvas product={SAMPLE} company={COMPANY} template={template} image={image} logo={null} width={720} label="Example product circular made by Dawakraft" />
       <figcaption>
-        <span className="mono">{TEMPLATES[i][1]} layout</span> · drawn by the app from sample photos
+        <span className="mono">{HERO_TEMPLATES[i][1]} layout</span> · drawn by the app from sample photos
       </figcaption>
     </figure>
   );

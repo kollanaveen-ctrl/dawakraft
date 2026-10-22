@@ -14,15 +14,37 @@ export function aiFailure(error: AiErrorCode | "not_signed_in" | "bad_request" |
   return NextResponse.json({ ok: false, error }, { status });
 }
 
+/** The HTTP status for an AI error code (the same for every AI route). */
+export function aiStatus(code: AiErrorCode): number {
+  switch (code) {
+    case "rate_limited":
+      return 429;
+    case "out_of_credits":
+      return 402;
+    case "not_configured":
+      return 503;
+    case "photo_unavailable":
+      return 501;
+    case "image_rejected":
+    case "refused":
+      return 422;
+    default:
+      return 502;
+  }
+}
+
 /** Four photos at the schema's size cap, plus JSON overhead. Bigger bodies are refused before parsing. */
 const MAX_BODY_BYTES = 13 * 1024 * 1024;
 
 /** Read the JSON body, refusing oversized requests up front. `body` is null when it isn't valid JSON. */
-export async function readJsonBody(request: Request): Promise<{ tooLarge: true } | { tooLarge: false; body: unknown }> {
+export async function readJsonBody(
+  request: Request,
+  maxBytes: number = MAX_BODY_BYTES,
+): Promise<{ tooLarge: true } | { tooLarge: false; body: unknown }> {
   const declared = Number(request.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY_BYTES) return { tooLarge: true };
+  if (declared > maxBytes) return { tooLarge: true };
   const text = await request.text().catch(() => "");
-  if (text.length > MAX_BODY_BYTES) return { tooLarge: true };
+  if (text.length > maxBytes) return { tooLarge: true };
   try {
     return { tooLarge: false, body: JSON.parse(text) };
   } catch {
@@ -31,7 +53,7 @@ export async function readJsonBody(request: Request): Promise<{ tooLarge: true }
 }
 
 /** Tighter limits for anonymous visitors who unlocked the online demo with the passcode, per IP. */
-const UNLOCKED_LIMITS: Record<AiKind, number> = { read: 15, sort: 6 };
+export const UNLOCKED_LIMITS: Record<AiKind, number> = { read: 15, sort: 6, copy: 10, photo: 3 };
 
 /** The caller's IP from x-forwarded-for (set by Vercel), for in-memory limits. */
 export async function requestIp(): Promise<string> {
