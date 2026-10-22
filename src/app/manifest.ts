@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Dawakraft",
     short_name: "Dawakraft",
-    description: "Box to circular: branded product circulars for pharma distributors.",
+    description: "The pharma catalogue studio. Clear product circulars, a searchable catalogue, and easy sharing.",
     start_url: "/",
     scope: "/",
     display: "standalone",

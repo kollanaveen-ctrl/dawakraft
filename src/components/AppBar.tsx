@@ -15,7 +15,7 @@ const icon = (d: string) => (
 );
 
 const NAV: NavItem[] = [
-  { href: "/catalog", label: "Catalog", icon: icon("M4 5h7v6H4zM13 5h7v6h-7zM4 13h7v6H4zM13 13h7v6h-7z") },
+  { href: "/catalog", label: "My catalog", icon: icon("M4 5h7v6H4zM13 5h7v6h-7zM4 13h7v6H4zM13 13h7v6h-7z") },
   { href: "/new", label: "New", icon: icon("M12 5v14M5 12h14"), primary: true },
   { href: "/import", label: "Import", icon: icon("M12 4v11m0 0-4-4m4 4 4-4M5 20h14") },
   { href: "/company", label: "Company", icon: icon("M4 20V8l8-4 8 4v12M9 20v-6h6v6") },
@@ -43,7 +43,7 @@ export function AppBar() {
 
   return (
     <>
-      <header className="bar">
+      <header className="bar app-bar">
         <div className="wrap">
           <Brand />
           <nav className="tabs tabs-desktop" aria-label="Sections">

@@ -139,20 +139,21 @@ export function Catalog() {
     : "Your saved products appear here. Add the first one by photographing its box.";
 
   return (
-    <section aria-labelledby="h-catalog">
+    <section className="catalog-studio" aria-labelledby="h-catalog">
       {loadError && (
         <div className="notice warn">
           <span className="dot warn" />
           <p>{loadError}</p>
         </div>
       )}
-      <div className="spread">
+      <div className="spread catalog-heading">
         <div>
-          <p className="mono muted">{loaded ? plural(products.length, "product") : "Catalog"}</p>
-          <h1 id="h-catalog">Your products</h1>
+          <p className="mono muted">Your workspace / Product library</p>
+          <h1 id="h-catalog">Your range, together.</h1>
+          <p className="catalog-lede">Find the right product. Keep your company identity consistent. Share with confidence.</p>
         </div>
         <div className="row">
-          <button className="btn" type="button" onClick={copyCatalog}>
+          <button className="btn" type="button" onClick={copyCatalog} disabled={!loaded || !list.length}>
             Copy catalog list
           </button>
           <Link className="btn" href="/export">
@@ -176,11 +177,16 @@ export function Catalog() {
         </div>
       )}
 
-      <div className="toolbar">
+      <div className="catalog-finder">
+        <div className="finder-heading">
+          <h2>Find a product</h2>
+          <span className="muted">{loaded ? plural(products.length, "product") : "Loading your range"}</span>
+        </div>
+        <div className="toolbar">
         <label className="search" htmlFor="q">
           <span className="vis-hidden">Search products</span>
-          <span aria-hidden="true" className="muted">⌕</span>
-          <input id="q" type="text" placeholder="Search by brand, composition or manufacturer" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
+          <input id="q" type="search" placeholder="Search by brand, composition or manufacturer" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
       </div>
 
@@ -225,7 +231,7 @@ export function Catalog() {
           </div>
         )}
         {filtered && (
-          <p className="muted seg-summary">
+          <p className="muted seg-summary" role="status">
             Showing {plural(list.length, "product")}.{" "}
             <button
               className="inline-link"
@@ -243,6 +249,11 @@ export function Catalog() {
         )}
       </div>
 
+      </div>
+      <div className="catalog-results" aria-live="polite">
+        <h2>{filtered ? "Matching products" : "All products"}</h2>
+        <span className="muted">{loaded ? plural(list.length, "product") : "Loading…"}</span>
+      </div>
       {hasExamples && (
         <div className="notice">
           <span className="dot" />

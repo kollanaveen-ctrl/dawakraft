@@ -286,3 +286,61 @@
   .pcard, .chip { transition: border-color 0.15s, background 0.15s, transform 0.15s; }
   .pcard:hover { transform: translateY(-2px); }
 }
+
+/* Studio refinement. Shared controls retain their original behavior. */
+@layer components {
+  .wrap { max-width:1160px; padding-left:max(24px,env(safe-area-inset-left,0px)); padding-right:max(24px,env(safe-area-inset-right,0px)); }
+  main.wrap { padding-top:38px; }
+  .app-bar .wrap { min-height:80px; }
+  .tab { min-height:44px; display:inline-flex; align-items:center; gap:8px; transition:background .18s,color .18s; }
+  .tab:hover { color:var(--ink); background:var(--sunken); }
+  .tab.primary:hover { background:var(--accent-hover); color:var(--accent-ink); }
+  .btn { border-radius:7px; min-height:44px; }
+  .card { box-shadow:none; }
+  .catalog-heading { padding:12px 0 30px; gap:24px; align-items:center; }
+  .catalog-heading .mono { font-size:.61rem; letter-spacing:.13em; margin-bottom:12px; color:var(--accent); }
+  .catalog-heading h1 { font-size:clamp(2rem,3.8vw,2.85rem); font-weight:500; letter-spacing:-.045em; line-height:1.15; }
+  .catalog-lede { color:var(--muted); max-width:36em; font-size:.9rem; margin-top:12px; }
+  .catalog-heading .row { gap:8px; }
+  .catalog-heading .btn { font-size:.8rem; padding-inline:13px; }
+  .catalog-finder { padding:23px 25px 19px; background:var(--surface); border:1px solid var(--line); border-radius:9px; margin-bottom:32px; }
+  .finder-heading,.catalog-results { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+  .finder-heading h2,.catalog-results h2 { font-size:1rem; font-weight:600; letter-spacing:-.02em; }
+  .finder-heading > span,.catalog-results > span { font-family:var(--f-mono); font-size:.65rem; }
+  .catalog-finder .toolbar { margin:16px 0 20px; }
+  .catalog-finder .search { background:var(--bg); border-radius:6px; padding-inline:14px; gap:12px; }
+  .catalog-finder .search input { min-height:52px; font-size:.94rem; }
+  .search:focus-within { outline:2px solid var(--accent); outline-offset:3px; }
+  .catalog-finder .segments { gap:13px; margin-bottom:0; }
+  .catalog-finder .seg-row { align-items:center; }
+  .catalog-finder .seg-label { font-size:.61rem; flex-basis:70px; }
+  .catalog-finder .chip { border-radius:5px; padding:8px 11px; font-size:.76rem; min-height:36px; }
+  .chip:hover { border-color:var(--accent); }
+  .catalog-results { margin:0 0 17px; }
+  .catalog-studio .grid { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:23px; }
+  .catalog-studio .pcard { box-shadow:none; border-radius:8px; border-color:var(--line); }
+  .catalog-studio .pcard:hover { border-color:var(--accent); box-shadow:0 8px 24px -16px #14201d55; }
+  .catalog-studio .pcard .meta { padding:16px 17px 18px; gap:5px; border-top:1px solid var(--line); }
+  .catalog-studio .pcard .meta strong { font-size:1.08rem; font-weight:600; letter-spacing:-.02em; }
+  .catalog-studio .pcard .meta > span { font-size:.76rem; }
+  .catalog-studio .empty { border:1px solid var(--line); border-radius:9px; padding:48px 24px; background:var(--surface); }
+  .catalog-studio .empty h2 { font-size:1.5rem; font-weight:500; }
+  .catalog-studio .empty p { max-width:30em; font-size:.9rem; }
+  .catalog-studio .notice { font-size:.82rem; background:var(--accent-soft); border:0; border-radius:6px; }
+  .catalog-studio .notice.warn { background:var(--warn-soft); }
+  @media(max-width:720px) {
+    .wrap { padding-left:max(18px,env(safe-area-inset-left,0px)); padding-right:max(18px,env(safe-area-inset-right,0px)); }
+    main.wrap { padding-top:24px; }
+    .app-bar .wrap { min-height:72px; }
+    .catalog-heading { padding-top:4px; gap:20px; }
+    .catalog-heading .row { width:100%; }
+    .catalog-heading .row .primary { margin-left:auto; }
+    .catalog-finder { padding:19px 16px; margin-bottom:24px; }
+    .catalog-finder .seg-row { align-items:flex-start; }
+    .catalog-studio .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    .catalog-studio .pcard .meta { padding:12px 10px; }
+    .catalog-studio .pcard .meta strong { font-size:.94rem; }
+    .catalog-studio .pcard .meta > span { font-size:.7rem; }
+  }
+  @media(max-width:400px) { .catalog-heading .row .primary { width:100%; } .catalog-heading .row .btn:not(.primary) { flex:1; } }
+}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HeroCircular } from "@/components/landing/HeroCircular";
 import { Logo } from "@/components/Logo";
+import { demoMode } from "@/lib/config";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -11,49 +12,34 @@ export const metadata: Metadata = {
 };
 
 const STEPS = [
-  ["Photograph every side", "Front, side panels and top: on any phone, no special setup."],
-  ["Tap the corners", "Dawakraft suggests each panel's corners and straightens it, so small print stays sharp."],
-  ["AI reads, you confirm", "Every detail shows the panel and the exact printed text it came from. Strength is cross-checked."],
-  ["Compliance check", "Claim words like “cure”, “guaranteed” or “100%” are blocked, and Schedule H, H1 and X products get trade-only warnings."],
-  ["Share the circular", "A branded 1080 × 1350 image with a ready message, sent straight to WhatsApp."],
-];
-
-const FEATURES = [
-  ["Guardrails, not just templates", "Trade-only footer on every circular, banned claim words caught before anything is shared, and a confirm-against-the-carton step that can't be skipped."],
-  ["Evidence, not guesses", "The AI must quote the printed text it read and name the panel. If the front says 250 and the side says 500 mg, Dawakraft stops and asks."],
-  ["Real 3D pack shots", "Your own photos, straightened and wrapped onto a 3D box. The product image is never drawn by AI, so the pack on the circular is the real pack."],
-  ["A catalog that sorts itself", "Filter by category, company and new launch. Launches move to Existing after 60 days, and the “New launch” badge drops off by itself."],
-  ["WhatsApp-first", "One tap shares the circular image and message on a phone. Copy a whole company's list or just the new launches."],
-  ["Works like an app", "Add it to the home screen. Fast on mid-range Android phones, readable in bright light, usable with one thumb."],
+  ["Capture the pack", "Photograph the front, side panels and top. Straighten each panel with a few corner adjustments."],
+  ["Read. Review. Confirm.", "AI reads the printed label and shows its source. Check the details against the carton before continuing."],
+  ["Make it your company's", "Choose a circular layout. Your company name, logo and contact details bring the range together."],
+  ["Keep it within reach", "Save to your catalog, find by brand or composition, and export a circular or catalogue PDF to share."],
 ];
 
 const FAQ = [
-  ["Is Dawakraft free to try?", "Yes. The demo needs no sign-up: products and company details are saved only in your browser on your device."],
-  ["Does the AI make up product details?", "It is told to copy only printed text and to show where it read each detail. You check every field against the carton before a circular can be made, and composition is always flagged for review."],
-  ["Which products work best?", "Cartons and boxes: photograph the front, a side panel and the top. Bottles, tubes and strips use a flat front photo instead."],
-  ["Can I share Schedule H products?", "Circulars are for registered medical practitioners, hospitals and the licensed trade. Dawakraft warns you on Schedule H, H1 and X products to share them only with that audience."],
-  ["Is this legal advice?", "No. The check catches common problems, not the full law. The licence holder stays responsible for the final content."],
+  [
+    "How do I get started?",
+    demoMode
+      ? "Open the demo without signing up. Its products and company details are saved in this browser on this device."
+      : "Open the studio and sign in to create your company's catalog. Your account keeps your saved products together.",
+  ],
+  ["Do I still need to check the label?", "Yes. AI can misread small print. Dawakraft shows the source text, but you must confirm every product detail against the carton."],
+  ["What can I share?", "Export individual circulars, copy a filtered product list, or create a catalogue PDF. Use your phone's sharing options to send them to the intended trade audience."],
+  ["Does this guarantee compliance?", "No. Checks flag common claim and label issues. The licence holder remains responsible for the content and its intended audience."],
 ];
 
 function jsonLd() {
-  const data = [
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      name: SITE_NAME,
-      url: SITE_URL,
-      applicationCategory: "BusinessApplication",
-      operatingSystem: "Web, Android, iOS",
-      description: SITE_DESCRIPTION,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
-    },
-  ];
-  // Static content only; "<" is escaped so the JSON can't close the script tag.
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: SITE_NAME,
+    url: SITE_URL,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description: SITE_DESCRIPTION,
+  };
   return { __html: JSON.stringify(data).replace(/</g, "\\u003c") };
 }
 
@@ -62,13 +48,15 @@ export default function HomePage() {
     <>
       <header className="bar landing-bar">
         <div className="wrap">
-          <Link href="/" className="brand">
+          <Link href="/" className="brand" aria-label="Dawakraft home">
             <Logo />
           </Link>
           <nav className="tabs" aria-label="Home page">
-            <a className="tab" href="#how">How it works</a>
-            <a className="tab" href="#faq">FAQ</a>
-            <Link className="tab primary" href="/catalog">Open the app</Link>
+            <a className="tab" href="#how">The workflow</a>
+            <a className="tab" href="#faq">Questions</a>
+            <Link className="tab primary" href="/catalog">
+              Open studio <span aria-hidden="true">↗</span>
+            </Link>
           </nav>
         </div>
       </header>
@@ -76,88 +64,135 @@ export default function HomePage() {
       <main id="main" className="landing">
         <section className="hero wrap" aria-labelledby="hero-title">
           <div className="hero-copy">
-            <p className="eyebrow">For pharma distributors, PCD companies &amp; medical agents</p>
-            <h1 id="hero-title">From medicine box to WhatsApp-ready circular in two minutes.</h1>
-            <p className="lede">
-              Photograph the carton. Dawakraft straightens every panel, reads the label with AI and shows you where each detail came from,
-              checks the claims, and designs a branded trade circular.
+            <p className="eyebrow">
+              <span className="eyebrow-rule" /> A product studio for the pharma trade
             </p>
-            <div className="row">
-              <Link className="btn primary lg" href="/catalog">Try the free demo</Link>
-              <a className="btn lg" href="#how">See how it works</a>
+            <h1 id="hero-title">A better way to<br />present <em>your range.</em></h1>
+            <p className="lede">
+              Give every medicine pack a consistent company identity. Turn carton photos into clear circulars and a catalog you can actually find things in.
+            </p>
+            <div className="row hero-actions">
+              <Link className="btn primary lg" href="/catalog">
+                {demoMode ? "Explore the demo" : "Start your catalog"} <span aria-hidden="true">↗</span>
+              </Link>
+              <a className="text-link" href="#how">
+                See how it works <span aria-hidden="true">↓</span>
+              </a>
             </div>
-            <ul className="trust">
-              <li>No sign-up for the demo</li>
-              <li>Demo catalog stays on your device</li>
-              <li>Trade-only by design</li>
-            </ul>
+            <p className="hero-note">
+              {demoMode ? "No sign-up · Saved on this device" : "Your products, organized in one workspace"}
+            </p>
+            <div className="hero-index">
+              <span>01 / Capture</span>
+              <span>02 / Confirm</span>
+              <span>03 / Create & share</span>
+            </div>
           </div>
-          <HeroCircular />
+          <div className="studio-preview">
+            <div className="preview-topline">
+              <span className="preview-status" /> THE CIRCULAR STUDIO
+              <span>Preview / 01</span>
+            </div>
+            <HeroCircular />
+            <div className="preview-stamp">
+              <span aria-hidden="true">✓</span>
+              <div>
+                One company. One clear identity.
+                <small>Sample product · illustrative details</small>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section id="how" className="wrap section" aria-labelledby="how-title">
-          <p className="eyebrow">How it works</p>
-          <h2 id="how-title">Five steps, one thumb</h2>
+        <section className="range-note wrap" aria-label="Designed around your range">
+          <p>Good products deserve<br /><strong>to be remembered.</strong></p>
+          <div>
+            WhatsApp messages move on. Keep your range organized by company, category and launch, so the next product conversation starts with the right details.
+          </div>
+        </section>
+
+        <section id="how" className="wrap section workflow" aria-labelledby="how-title">
+          <div className="section-intro">
+            <p className="eyebrow">From carton to catalog</p>
+            <h2 id="how-title">A considered workflow.<br /><em>A consistent result.</em></h2>
+            <p>You bring the real product. Dawakraft helps you present it clearly, with a human check where it matters.</p>
+          </div>
           <ol className="steps-list">
             {STEPS.map(([title, text], i) => (
               <li key={title}>
-                <span className="step-n" aria-hidden="true">{i + 1}</span>
-                <h3>{title}</h3>
-                <p>{text}</p>
+                <span className="step-n">0{i + 1}</span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </div>
               </li>
             ))}
           </ol>
         </section>
 
-        <section className="wrap section" aria-labelledby="features-title">
-          <p className="eyebrow">Why Dawakraft</p>
-          <h2 id="features-title">Built for the pharma trade, not generic design</h2>
+        <section className="wrap section capabilities" aria-labelledby="features-title">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Built around the way you work</p>
+              <h2 id="features-title">Less scattered.<br />More recognizable.</h2>
+            </div>
+            <p>For distributors, PCD companies and medical agents who want a clear, coherent product range.</p>
+          </div>
           <div className="feature-list">
-            {FEATURES.map(([title, text]) => (
-              <article key={title}>
-                <h3>{title}</h3>
-                <p>{text}</p>
+            <article>
+              <span className="feature-label">01 / Identity</span>
+              <h3>Your company, on every circular.</h3>
+              <p>Keep your logo, contact details and company theme together. Create a range that looks like it belongs together.</p>
+            </article>
+            <article>
+              <span className="feature-label">02 / Findability</span>
+              <h3>The right product, within reach.</h3>
+              <p>Search by brand, composition or manufacturer. Narrow the catalog by company, category or new launch.</p>
+            </article>
+            <article>
+              <span className="feature-label">03 / Accuracy</span>
+              <h3>Printed details. Human judgment.</h3>
+              <p>Review what AI read and where it came from. Claim checks flag common issues before you create a circular.</p>
+            </article>
+            <article>
+              <span className="feature-label">04 / Sharing</span>
+              <h3>Ready for the next conversation.</h3>
+              <p>Export a circular, a catalogue PDF or a product list. Share through your existing channels, with the intended trade audience.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="faq" className="wrap section faq-section" aria-labelledby="faq-title">
+          <div>
+            <p className="eyebrow">A few useful details</p>
+            <h2 id="faq-title">Before you begin.</h2>
+          </div>
+          <div className="faq">
+            {FAQ.map(([q, a]) => (
+              <article key={q}>
+                <h3>{q}</h3>
+                <p>{a}</p>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="wrap section who" aria-labelledby="who-title">
-          <h2 id="who-title">Who uses it</h2>
-          <div className="who-grid">
-            <p><b>Distributors</b> launching a new product to chemists in their area.</p>
-            <p><b>PCD and franchise companies</b> keeping one consistent catalog across every partner.</p>
-            <p><b>Medical agents</b> sending a clean circular to a doctor in the time a call takes.</p>
-          </div>
-        </section>
-
-        <section id="faq" className="wrap section" aria-labelledby="faq-title">
-          <p className="eyebrow">Questions</p>
-          <h2 id="faq-title">Frequently asked</h2>
-          <div className="faq">
-            {FAQ.map(([q, a]) => (
-              <details key={q}>
-                <summary>{q}</summary>
-                <p>{a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-
         <section className="wrap section cta" aria-labelledby="cta-title">
-          <h2 id="cta-title">Make your first circular now</h2>
-          <p>The demo works in your browser. Nothing to install.</p>
-          <Link className="btn primary lg" href="/catalog">Try the free demo</Link>
+          <div>
+            <p className="eyebrow">Your range, brought together</p>
+            <h2 id="cta-title">Make the next product<br /><em>easier to remember.</em></h2>
+          </div>
+          <Link className="btn primary lg" href="/catalog">
+            Open Dawakraft <span aria-hidden="true">↗</span>
+          </Link>
         </section>
       </main>
 
       <footer className="site-footer">
         <div className="wrap">
           <Logo />
-          <p className="muted">
-            Dawakraft makes factual, trade-only product circulars. It checks common problems, not the full law; the licence holder stays responsible for
-            the final content.
-          </p>
+          <p>Factual product circulars for the licensed trade.<br />Checks support your review; they do not replace it.</p>
+          <a className="text-link" href="#hero-title">Back to top ↑</a>
         </div>
       </footer>
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd()} />

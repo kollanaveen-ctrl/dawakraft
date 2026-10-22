@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="112" viewBox="0 0 520 112" role="img" aria-labelledby="title desc">
+  <title id="title">Dawakraft</title>
+  <desc id="desc">A folded catalogue page forms the letter D. The pharma catalogue studio.</desc>
+  <svg x="8" y="8" width="96" height="96" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="17" fill="#0E5E4E"/>
+    <path d="M16 14h17c14 0 23 7 23 18S47 51 33 51H16V14Zm11 10v17h6c8 0 12-3 12-9s-4-8-12-8h-6Z" fill="#FBF8F0" fill-rule="evenodd"/>
+    <path d="M16 14h12L16 26V14Z" fill="#E9A23B"/>
+    <path d="M30 29h9M30 35h6" stroke="#FBF8F0" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <text x="125" y="61" font-family="Arial, sans-serif" font-size="48" font-weight="700" letter-spacing="-2" fill="#182F29">Dawa<tspan fill="#0E5E4E">kraft</tspan></text>
+  <text x="127" y="88" font-family="Arial, sans-serif" font-size="16" letter-spacing=".5" fill="#52665D">The pharma catalogue studio</text>
+</svg>
