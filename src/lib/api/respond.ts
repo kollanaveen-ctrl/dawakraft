@@ -2,6 +2,7 @@
 // Every answer is { ok: true, data } or { ok: false, error } with a short error code;
 // the browser turns codes into plain English (friendlyError in src/lib/data/repo.ts).
 import { NextResponse } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import type { z } from "zod";
 import { readJsonBody } from "../ai/access";
 import { getSession, type SessionUser } from "../auth/server";
@@ -57,6 +58,9 @@ export async function parseBody<S extends z.ZodType>(
 
 /** Map a thrown error to a response; detail goes to the server log only. */
 export function failFromError(error: unknown, tag: string): NextResponse {
+  // cookies() and other request APIs use internal signals to stop prerendering.
+  // Let Next.js handle those before logging or translating application errors.
+  unstable_rethrow(error);
   if (error instanceof D1Error) {
     if (error.kind === "constraint") return fail("invalid", 400);
     console.error(`[${tag}] D1 ${error.kind}: ${error.message}`);
