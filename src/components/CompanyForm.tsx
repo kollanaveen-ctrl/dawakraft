@@ -64,18 +64,29 @@ export function CompanyForm() {
     setSaving(true);
     setStatus({ text: "Saving…", err: false });
     let uploaded: string | null = null;
+    // While photo storage isn't switched on, the details still save and the new logo waits.
+    let logoSkipped = false;
     try {
       let logoPath = company.logoPath;
       if (pending.kind === "new") {
-        uploaded = await repo.uploadMedia(userId, "logo", pending.blob);
-        primeMediaImage(uploaded, await loadImage(URL.createObjectURL(pending.blob)));
-        logoPath = uploaded;
+        try {
+          uploaded = await repo.uploadMedia(userId, "logo", pending.blob);
+          primeMediaImage(uploaded, await loadImage(URL.createObjectURL(pending.blob)));
+          logoPath = uploaded;
+        } catch (e) {
+          if (!repo.storageOff(e)) throw e;
+          logoSkipped = true;
+        }
       } else if (pending.kind === "removed") logoPath = null;
       const saved = await repo.saveCompany(userId, { ...draft, brandColor: colour, logoPath });
       if (company.logoPath && company.logoPath !== logoPath) await repo.removeMedia([company.logoPath]);
       setCompany(saved);
-      setPending({ kind: "none" });
-      setStatus({ text: "Saved. New circulars use this branding.", err: false });
+      if (logoSkipped) {
+        setStatus({ text: "Saved without the logo: photo storage isn't switched on yet. Your other details are saved.", err: false });
+      } else {
+        setPending({ kind: "none" });
+        setStatus({ text: "Saved. New circulars use this branding.", err: false });
+      }
     } catch (e) {
       if (uploaded) await repo.removeMedia([uploaded]);
       setStatus({ text: repo.friendlyError(e), err: true });

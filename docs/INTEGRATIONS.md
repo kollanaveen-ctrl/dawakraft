@@ -1,7 +1,7 @@
 # Dawakraft integrations
 
 > Status: living document. Last checked against the code on 2026-10-22.
-> Related: [ARCHITECTURE](ARCHITECTURE.md) · [ADR 0001](adr/0001-nextjs-supabase.md) · [ADR 0003](adr/0003-provider-independent-ai.md)
+> Related: [ARCHITECTURE](ARCHITECTURE.md) · [ADR 0001](adr/0001-nextjs-supabase.md) · [ADR 0007](adr/0007-cloudflare-d1-r2-on-vercel.md) · [ADR 0003](adr/0003-provider-independent-ai.md)
 
 Prices and free-tier limits change often. Where a number below isn't taken from the code, **check the provider's current terms** before relying on it.
 
@@ -9,7 +9,9 @@ Prices and free-tier limits change often. Where a number below isn't taken from 
 
 | Service | Purpose | Status today |
 |---|---|---|
-| **Supabase** | Database, email sign-in, photo storage | Code ready, **not connected** (no keys). The app runs in demo mode. |
+| **Cloudflare D1** | Database (accounts, sessions, catalogs, company profiles, AI usage) | Database created and **tables applied** (`cloudflare/migrations/0001_init.sql`). Waits for `CLOUDFLARE_D1_API_TOKEN`, `AUTH_SECRET` and `NEXT_PUBLIC_DATA_BACKEND=cloudflare`; until then demo mode. |
+| **Cloudflare R2** | Private photo storage (product pictures, promo photos, logos) | Code ready; **R2 not yet enabled** on the account. Uploads answer `storage_not_configured` until it is. |
+| **Resend** | Emails the 6-digit sign-in code | Code ready, **no key yet**. Without a verified domain it only delivers to the Resend account's own email. |
 | **Anthropic Claude** | Reads the carton; sorts imported products into categories | Code ready, **no key yet**. |
 | **Google Gemini via OpenRouter** | Reads the carton; sorts categories (Google models only) | **Active** when `OPENROUTER_API_KEY` is set (and no Claude key), or with `AI_PROVIDER=gemini`. |
 | **Mock AI provider** | Free, labelled sample answers | **Active by default** while there is no Claude key. |
@@ -23,8 +25,15 @@ Set them in `.env.local` on your computer and in **Vercel → Project → Settin
 
 | Variable | Where it's used | Secret? | Meaning |
 |---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | `src/lib/config.ts`, Supabase clients, `src/proxy.ts` | No | Your project URL, e.g. `https://abcd.supabase.co`. |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | same | No (safe in the browser; row-level security protects data) | The publishable key (older projects: the "anon" key). |
+| `NEXT_PUBLIC_DATA_BACKEND` | `src/lib/config.ts`, `src/lib/data/repo.ts`, `src/proxy.ts` | No (only a switch) | `cloudflare` = real accounts; anything else = demo mode. |
+| `CLOUDFLARE_ACCOUNT_ID` | `src/lib/config.ts` (D1 and R2 addresses) | No, but keep it server-only | Cloudflare account ID. |
+| `CLOUDFLARE_D1_DATABASE_ID` | `src/lib/config.ts`, `src/lib/cloudflare/d1.ts` | No, but keep it server-only | The D1 database's ID. |
+| `CLOUDFLARE_D1_API_TOKEN` | `src/lib/cloudflare/d1.ts` | **Yes. Never prefix with `NEXT_PUBLIC_`; never log or commit it.** | API token with **Account → D1 → Edit** only. It can reach the whole database, so the app's own code enforces who sees what. |
+| `AUTH_SECRET` | `src/lib/auth/codes.ts` via `src/lib/config.ts` | **Yes.** | 32+ random characters; keys the sign-in code hashes. Changing it invalidates codes not yet used (sessions stay valid). |
+| `RESEND_API_KEY` | `src/lib/auth/email.ts` | **Yes.** | Resend key with sending access. |
+| `AUTH_EMAIL_FROM` | same | No | Sender, e.g. `Dawakraft <login@yourdomain.in>`. Default `Dawakraft <onboarding@resend.dev>`. |
+| `R2_BUCKET` | `src/lib/cloudflare/r2.ts` via `config.ts` | No | Bucket name, e.g. `dawakraft-media`. |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | same | **Yes (the secret).** | R2 API token (S3 keys) with Object Read & Write on that bucket only. |
 | `ANTHROPIC_API_KEY` | `src/lib/ai/providers/anthropic.ts`, `src/lib/ai/index.ts` | **Yes. Never prefix with `NEXT_PUBLIC_`.** | Claude API key. |
 | `OPENROUTER_API_KEY` | `src/lib/ai/providers/gemini.ts`, `src/lib/ai/index.ts` | **Yes. Never prefix with `NEXT_PUBLIC_`; never log or commit it.** | OpenRouter key for Google Gemini. |
 | `OPENROUTER_MODEL` | `src/lib/ai/providers/gemini.ts` | No | Optional box-reading model. Must start with `google/`, otherwise the default `google/gemini-3.7-flash` is used. |
@@ -52,17 +61,43 @@ Upper/lower case and surrounding spaces are ignored.
 
 ---
 
-## Supabase
+## Cloudflare D1 (database)
 
-**Purpose:** Postgres database (`companies`, `products`, `ai_usage`), email one-time-code sign-in (magic link and 6-digit code), and the private `media` bucket for product pictures and logos. Row-level security makes every row and file visible only to its owner. Schema: `supabase/migrations/0001_init.sql` and `0002_segments.sql`.
+**Purpose:** SQLite database for `users`, `login_codes`, `sessions`, `companies`, `products` and `ai_usage`. Schema and all checks: `cloudflare/migrations/0001_init.sql` (ported from the old Supabase files 0001–0004).
 
-**Free tier (check current terms):** Supabase offers a free plan suitable for a pilot, with limits on database size, storage, monthly active users and bandwidth, and free projects pause after a period of inactivity. The **built-in email sender only sends a few emails per hour**; for real users, connect your own SMTP under Authentication → SMTP.
+**How the app reaches it:** the site runs on Vercel, so it can't use a Worker binding. `src/lib/cloudflare/d1.ts` calls the REST endpoint `POST https://api.cloudflare.com/client/v4/accounts/{account}/d1/database/{db}/query` with `{ sql, params }` (or `{ batch: [...] }` for several statements in one request) and a Bearer token. 10-second timeout; 429 and 5xx are retried twice (300 ms, 600 ms). D1 binds at most 100 values per statement, so bulk inserts are split (4 products per statement) and sent as one batch.
 
-**Credentials needed:** a Supabase account and project (README suggests the Mumbai `ap-south-1` region); the Project URL and publishable key.
+**Who sees what:** D1 has no row-level security, and the token can read everything. Every data route gets the user from the session cookie (`withUser` in `src/lib/api/respond.ts`) and every statement binds that user's id as `owner_id` (`src/lib/db/*`); an owner id in a request body is dropped by the zod schemas. Tests in `src/lib/__tests__/data-api.test.ts` check this.
 
-**Setup:** README "Step 1". Run both migration files in the SQL Editor, set Site URL and the `/auth/callback` redirect URL, optionally add `Your code: {{ .Token }}` to the Magic Link email so people can type the code.
+**Limits (check current terms):** the Cloudflare API allows about **1200 requests per 5 minutes per token**. Each screen action costs about 2 requests (session lookup + the query); signing in costs 2–4. Fine for a pilot; a busy site would need a Worker in front of D1 (see ADR 0007). D1's free plan has daily row read/write limits and 5 GB storage.
 
-**Status:** code ready, not connected. Sign-in, the database, storage and the shared AI usage limit are untested against a real project.
+**Setup:** README, "Turning on real accounts", steps 1–3 and 7. Apply migrations with `cf d1 migrations apply <database id> --dir cloudflare/migrations`.
+
+**Status:** database created; migration `0001_init.sql` applied on 2026-10-22 (tables `users`, `login_codes`, `sessions`, `companies`, `products`, `ai_usage`, plus the `d1_migrations` bookkeeping table). Every SQL statement the app sends was compile-checked against it with `EXPLAIN`. Waiting for the API token and `AUTH_SECRET`.
+
+---
+
+## Email-code sign-in (Resend)
+
+**Flow:** `/login` asks for an email → `POST /api/auth/start` stores an HMAC-SHA256 (keyed with `AUTH_SECRET`) of a random 6-digit code for 10 minutes and emails it with Resend (`POST https://api.resend.com/emails`) → the person types it → `POST /api/auth/verify` checks it timing-safely (5 wrong tries lock that code; a code works once), creates the account on first use, and sets the `dk_session` cookie (httpOnly, SameSite=Lax, Secure in production, 30 days). Only the SHA-256 of the session token is stored. `POST /api/auth/signout` deletes the session; `GET /api/auth/me` says who is signed in.
+
+**Limits:** 3 codes per email and 10 per IP address per 10 minutes (counted in D1); 30 code checks per IP per 10 minutes (per server instance). The start route answers the same way for every valid address, so it doesn't reveal which emails have accounts.
+
+**Free tier (check current terms):** Resend's free plan allows a few thousand emails a month with a small daily cap. **Without a verified domain it delivers only to the email address of your own Resend account.** To sign in anyone else, add and verify a domain in Resend (DNS records) and set `AUTH_EMAIL_FROM`.
+
+**Development:** without a real `RESEND_API_KEY`, and only when `NODE_ENV` isn't `production`, the code is printed in the `npm run dev` terminal. On the live site a missing key makes sign-in answer "unavailable".
+
+---
+
+## Cloudflare R2 (photos)
+
+**Purpose:** private bucket for product pictures, promo photos and logos, at keys `<user id>/<name>-<random>.<webp|png|jpg>`.
+
+**How it works:** the browser asks `POST /api/media/upload-url` (type webp/png/jpeg, at most 5 MB) for a signed PUT link valid 5 minutes and uploads straight to `https://<account>.r2.cloudflarestorage.com/<bucket>/<key>` (signed with `aws4fetch`, region `auto`, service `s3`; the content type is part of the signature). `GET /api/media?path=` redirects to a signed GET link valid 10 minutes (`Cache-Control: private, no-store`). `DELETE /api/media` and product deletion remove files. Every path must start with the signed-in user's id; product and company saves refuse photo paths outside it. The 5 MB limit is checked when the link is issued; the signed link itself doesn't bind the size.
+
+**Setup:** README step 6: enable R2 (needs a payment method; the free tier covers small use and R2 has no egress fees), create the bucket, an R2 API token with Object Read & Write for that bucket only, and a CORS policy allowing GET and PUT with the `content-type` header from your site's origins.
+
+**Status:** not enabled on the account yet. Until it is, `upload-url` answers `storage_not_configured` (the app says "Photo storage isn't switched on yet") and everything else works.
 
 ---
 
@@ -116,7 +151,7 @@ Upper/lower case and surrounding spaces are ignored.
 | `POST /api/write-copy` | `writeCopy` (anthropic, gemini, mock) | `google/gemini-3.7-flash` (`OPENROUTER_COPY_MODEL`) | 20 / 10 min | 10 / 10 min |
 | `POST /api/promo-photo` | `makePhoto` (gemini only) | `google/gemini-3.1-flash-image` (`OPENROUTER_IMAGE_MODEL`) | 6 / 10 min | 3 / 10 min |
 
-Both use `checkAiAccess` like `/api/read-box` (sign-in, local demo mode, or the demo passcode cookie for paid providers), `readJsonBody`, and the same OpenRouter call: pinned `provider` block, retries on 429/5xx, 402/403 → `out_of_credits` (HTTP 402). Usage is counted in `ai_usage` with kinds `copy` and `photo` (run `supabase/migrations/0004_promo.sql` first).
+Both use `checkAiAccess` like `/api/read-box` (sign-in, local demo mode, or the demo passcode cookie for paid providers), `readJsonBody`, and the same OpenRouter call: pinned `provider` block, retries on 429/5xx, 402/403 → `out_of_credits` (HTTP 402). Usage is counted in D1's `ai_usage` table with kinds `copy` and `photo`.
 
 **Copywriter** (`promo-copy.ts`): structured output (`json_schema`, strict) with `max_tokens` 6000. The prompt: trade-only copy for doctors and chemists in India in the style of Indian pharma visual aids; use only the composition, form and uses; one section per active ingredient (max 3) with short factual bullets; indications only from `uses`; never invent indications, studies, statistics, percentages, comparisons or approvals; never the banned words (cure, guarantee, 100%, miracle, permanent, no side effects, instant relief, best, safest, No. 1, #1, risk-free); avoid strong claims (prevents, complete, rapid, fast, quick, FDA, proven, safe, superior, maximum, potent, effective, significant, new generation); no emoji or exclamation marks. **Enforced on the server whatever the model returns:** limits (headline 60, banner 30, tagline 45, section title 40, 1-3 sections × 1-3 bullets of 90, up to 7 indications of 50), exclamation marks and emoji removed, and any indication not in `uses` dropped. The route then runs `promoClaims` and returns `{ copy, claims: { banned, strong } }`, so the UI can block banned words and ask the person to confirm strong claims. The mock returns clearly labelled sample copy (`meta.mock: true`, banner "SAMPLE COPY").
 
@@ -154,11 +189,11 @@ Limits for unlocked visitors, per IP address and per server instance: 8 passcode
 
 ## Vercel
 
-**Purpose:** builds and hosts the site, runs the three API routes (`read-box`, `categorize`, `demo-unlock`) and `proxy.ts`.
+**Purpose:** builds and hosts the site (it stays the host after the move to Cloudflare), runs the API routes (AI, `auth/*`, `data/*`, `media/*`) and `proxy.ts`.
 
 **Free tier (check current terms):** the Hobby plan is free for personal, non-commercial projects; commercial use needs a paid plan. Function duration, bandwidth and build minutes are limited. The AI routes set `maxDuration = 120` seconds, which must be allowed by your plan.
 
-**Status:** live at https://dawakraft.vercel.app, auto-deploys from GitHub `main` (configured in Vercel; there is no `vercel.json`). No Supabase or Claude variables are set yet, so the live site is in demo mode with the mock AI.
+**Status:** live at https://dawakraft.vercel.app, auto-deploys from GitHub `main` (configured in Vercel; there is no `vercel.json`). No Cloudflare or Claude variables are set yet, so the live site is in demo mode with the mock AI.
 
 ---
 

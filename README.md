@@ -40,12 +40,13 @@ Photo of the box → straightened 3D product picture → AI reads the carton →
 
 | Piece | What it does |
 |---|---|
-| **Next.js 16 + React 19** | The website and five small server functions (`src/app/api`): read the box, sort categories, write promo copy, make a promo photo, unlock the demo. |
+| **Next.js 16 + React 19** | The website and small server functions (`src/app/api`): the AI routes (read the box, sort categories, write promo copy, make a promo photo, unlock the demo), email-code sign-in, and the data and photo routes. |
 | **Tailwind CSS 4** | Styling. Brand colours: pine `#0E5E4E`, marigold `#E9A23B`, kraft paper `#F6F4EE`. |
 | **Canvas, on the phone** | Straightening, background removal, the 3D product picture, every circular and the catalogue PDF (jsPDF) are drawn on the device, free. |
-| **Supabase** | Database, photo storage and email sign-in, with row-level security so each distributor sees only their own data. |
+| **Cloudflare D1 + R2** | D1 (SQLite) holds accounts, catalogs and company profiles; R2 holds the photos (private). The app reaches both over Cloudflare's API from Vercel, and every query is limited to the signed-in distributor's own rows. |
+| **Resend** | Sends the 6-digit sign-in code by email. |
 | **AI layer (`src/lib/ai`)** | Provider-independent: Google **Gemini via OpenRouter** (active), **Claude**, or a free **mock**. Keys stay on the server; paid AI needs sign-in (or the demo passcode) and has rate limits. |
-| **Vercel** | Hosting. Every push to `main` deploys automatically. |
+| **Vercel** | Hosting (it stays the host; Cloudflare is only the database and photo store). Every push to `main` deploys automatically. |
 
 ---
 
@@ -69,7 +70,11 @@ Copy `.env.example` to `.env.local` in the `app` folder and fill in what you hav
 
 | Setting | What it's for |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Real accounts and online storage (Supabase → Project Settings → API keys). Without them: demo mode. |
+| `NEXT_PUBLIC_DATA_BACKEND` | `cloudflare` turns on real accounts and online storage. Unset: demo mode (saved in this browser only, no sign-in). Not a secret. |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_D1_API_TOKEN` | The D1 database and an API token allowed to edit it (server-only). |
+| `AUTH_SECRET` | A long random secret (32+ characters) for sign-in codes. Server-only. |
+| `RESEND_API_KEY`, `AUTH_EMAIL_FROM` | Sending the sign-in code. Without a key, `npm run dev` prints the code in the terminal (never on the live site). |
+| `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Photo storage in R2. Without them, saving works but photo uploads are refused. |
 | `OPENROUTER_API_KEY` | Google Gemini via OpenRouter: box reading, category sorting, promo copy and promo photos. |
 | `ANTHROPIC_API_KEY` | Claude instead of Gemini (optional). |
 | `AI_PROVIDER` | Optional: `gemini`, `anthropic`, `mock` or `off`. Unset picks Claude if its key is real, else Gemini, else the mock. A typo means off, never a paid service. |
@@ -78,13 +83,26 @@ Copy `.env.example` to `.env.local` in the `app` folder and fill in what you hav
 
 Full details, limits and costs: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
-### Turning on real accounts (Supabase)
+### Turning on real accounts (Cloudflare)
 
-1. At **supabase.com**, create a project (region **Mumbai, ap-south-1**).
-2. In **SQL Editor**, run each file in `supabase/migrations/` in order: `0001_init.sql` (tables, security, photo storage), `0002_segments.sql` (new-launch date), `0003_uses.sql` (Uses field), `0004_promo.sql` (Promo circular). **Saving fails until all four have run.**
-3. In **Authentication → URL Configuration**, set the Site URL to your site and add `<your site>/auth/callback` to Redirect URLs.
-4. Optional: add `Your code: {{ .Token }}` to the Magic Link email so people can type a code instead of clicking the link. For real users, connect your own email service under Authentication → SMTP.
-5. Put the Project URL and publishable key in `.env.local` (and in Vercel), and restart.
+The website stays on Vercel; Cloudflare holds the data. Steps 1–2 are already done for the current database.
+
+1. **Database (D1).** In the Cloudflare dashboard, **Storage & databases → D1 → Create** (done: the database ID is in `.env.local`). Put the account ID and database ID in `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_DATABASE_ID`.
+2. **Tables.** Apply `cloudflare/migrations/` with the Cloudflare CLI (done once; run again after adding a migration, it skips what's applied):
+   ```bash
+   cf d1 migrations apply <database id> --dir cloudflare/migrations
+   ```
+3. **D1 token.** **My Profile → API Tokens → Create Token → Custom token**, permission **Account → D1 → Edit**, this account only. Put it in `CLOUDFLARE_D1_API_TOKEN`.
+4. **Sign-in secret.** Generate one and put it in `AUTH_SECRET`:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+   ```
+5. **Email (Resend).** At **resend.com → API Keys**, create a key with sending access and put it in `RESEND_API_KEY`. Until you verify your own domain in Resend, codes reach **only your own Resend account email** (sender `Dawakraft <onboarding@resend.dev>`). To sign in other people, verify a domain and set `AUTH_EMAIL_FROM`, e.g. `Dawakraft <login@yourdomain.in>`.
+6. **Photos (R2).** In the dashboard, enable **R2** (needs a payment method on file; the free tier covers small use), create a bucket (e.g. `dawakraft-media`, put its name in `R2_BUCKET`), then **R2 → Manage API tokens → Create** with **Object Read & Write** on that bucket only; copy the Access Key ID and Secret into `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`. In the bucket's **Settings → CORS policy**, allow your sites to upload and view photos:
+   ```json
+   [{ "AllowedOrigins": ["http://localhost:3000", "https://your-site.vercel.app"], "AllowedMethods": ["GET", "PUT"], "AllowedHeaders": ["content-type"], "MaxAgeSeconds": 3600 }]
+   ```
+7. **Switch it on.** Set `NEXT_PUBLIC_DATA_BACKEND=cloudflare` in `.env.local` (and in Vercel), and restart. If the switch is on but a setting is missing, the app says "isn't connected yet" instead of saving.
 
 ---
 
@@ -92,7 +110,7 @@ Full details, limits and costs: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 1. Import this GitHub repository at **vercel.com → Add New → Project** and keep the defaults.
 2. Under **Settings → Environment Variables**, add the same settings as `.env.local` (mark keys as Sensitive), then redeploy.
-3. If Supabase is on, add the Vercel link to its URL Configuration (step 3 above).
+3. If real accounts are on, add the Vercel link to the R2 bucket's CORS policy (step 6 above) and redeploy after changing `NEXT_PUBLIC_DATA_BACKEND` (it is built into the page).
 4. On a phone, open the link and choose **Add to Home screen**.
 
 ---
@@ -117,15 +135,17 @@ Full details, limits and costs: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 ```
 app/
   src/app/                  pages: landing (/), catalog, new, product/[id] (+ edit, promo), import, export, company, login
-  src/app/api/              read-box, categorize, write-copy, promo-photo, demo-unlock
+  src/app/api/              AI: read-box, categorize, write-copy, promo-photo, demo-unlock; auth/ (email code); data/ (products, company); media/ (R2 photos)
   src/components/           screens, the 5-step wizard, promo editor, catalogue PDF screen
   src/lib/ai/               AI contract, providers (gemini, anthropic, mock), prompts, access + limits
   src/lib/image/            edge finding, straightening, background removal, 3D box, strip/bottle placement
   src/lib/circular/         the five circular designs (promo/ = the landscape Promo circular)
   src/lib/catalog/          catalogue pages and the PDF
   src/lib/compliance.ts     the compliance checklist; promo.ts holds promo content and claim checks
-  src/lib/data/             Supabase and demo (browser) storage behind one interface
-  supabase/migrations/      0001–0004 database setup
+  src/lib/data/             the API routes and demo (browser) storage behind one interface (repo.ts)
+  src/lib/cloudflare/       D1 client (REST API), R2 signed links, photo key rules
+  src/lib/auth/, src/lib/db/  sign-in codes and sessions; owner-scoped SQL and request schemas
+  cloudflare/migrations/    D1 database setup (SQLite)
   docs/                     product plan, architecture, workflows, design system, SEO, integrations, testing, roadmap, ADRs
 ```
 
@@ -157,7 +177,7 @@ npm run build
 | [Architecture](docs/ARCHITECTURE.md) | Stack, module map, data model, API contracts, security, deployment. |
 | [Workflows](docs/WORKFLOWS.md) | Every user journey step by step, with failures and recovery. |
 | [Design system](docs/DESIGN_SYSTEM.md) | Logo, colours, fonts, components, accessibility. |
-| [Integrations](docs/INTEGRATIONS.md) | Supabase, Gemini via OpenRouter, Claude, the mock, the demo passcode, Vercel. |
+| [Integrations](docs/INTEGRATIONS.md) | Cloudflare D1 and R2, Resend, Gemini via OpenRouter, Claude, the mock, the demo passcode, Vercel. |
 | [SEO plan](docs/SEO_PLAN.md) | Search-engine setup and checks. |
 | [Testing](docs/TESTING.md) | Commands, results, manual checks, known gaps. |
 | [Roadmap](docs/ROADMAP.md) | Done, in progress, next. |
@@ -171,4 +191,4 @@ npm run build
 - **AI never replaces checking the carton.** Fields the AI was unsure about are marked **Check this**, and the composition is always flagged.
 - **AI never draws the product.** Pack pictures come only from your photos; AI photos show a made-up scene and are labelled.
 - **Schedule H, H1 and X** products carry a warning to share them only with doctors, chemists and the licensed trade.
-- **Not yet done:** real sign-in on the live site (Supabase), end-to-end browser tests, and testing on real phones with real cartons. See the [Roadmap](docs/ROADMAP.md).
+- **Not yet done:** real sign-in on the live site (the Cloudflare tokens, Resend key and R2 still need adding), end-to-end browser tests, and testing on real phones with real cartons. See the [Roadmap](docs/ROADMAP.md).

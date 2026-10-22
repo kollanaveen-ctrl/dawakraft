@@ -1,6 +1,6 @@
 # ADR 0002: Demo mode in browser storage
 
-- **Status:** Accepted
+- **Status:** Accepted; demo mode is now "`NEXT_PUBLIC_DATA_BACKEND` is not `cloudflare`" ([ADR 0007](0007-cloudflare-d1-r2-on-vercel.md))
 - **Date:** recorded 2026-10-22
 
 ## Context

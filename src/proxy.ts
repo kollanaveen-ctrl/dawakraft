@@ -1,12 +1,12 @@
-// Runs before every page: keeps the login session fresh and sends signed-out visitors to /login.
-// In demo mode (no real Supabase keys yet) there is no sign-in, so every page opens directly.
-import { createServerClient } from "@supabase/ssr";
+// Runs before every page: sends signed-out visitors from the app screens to /login.
+// It only checks that a session cookie is present (no database call here); every API route
+// still verifies the session properly. In demo mode there is no sign-in, so every page opens directly.
 import { NextResponse, type NextRequest } from "next/server";
-import { supabaseSettings } from "@/lib/config";
+import { realMode } from "@/lib/config";
+import { SESSION_COOKIE } from "@/lib/auth/session-token";
 
-const PUBLIC_PATHS = ["/login", "/auth/"];
-// The marketing home page and search-engine files are public; app screens need sign-in.
-const PUBLIC_EXACT = new Set(["/", "/robots.txt", "/sitemap.xml", "/opengraph-image", "/icon.svg"]);
+/** App screens that need sign-in. The landing page, /login and search-engine files stay public. */
+const APP_PATHS = ["/catalog", "/new", "/product", "/import", "/export", "/company"];
 const APP_HOME = "/catalog";
 
 function redirectTo(request: NextRequest, pathname: string) {
@@ -16,35 +16,18 @@ function redirectTo(request: NextRequest, pathname: string) {
   return NextResponse.redirect(url);
 }
 
-export async function proxy(request: NextRequest) {
+const isAppPath = (path: string) => APP_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const settings = supabaseSettings();
-  if (!settings) return path === "/login" ? redirectTo(request, APP_HOME) : NextResponse.next();
-  if (PUBLIC_EXACT.has(path)) return NextResponse.next();
-
-  let response = NextResponse.next({ request });
-  const supabase = createServerClient(settings.url, settings.key, {
-    cookies: {
-      getAll: () => request.cookies.getAll(),
-      setAll: (toSet, headers) => {
-        toSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        toSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-        Object.entries(headers ?? {}).forEach(([k, v]) => response.headers.set(k, v));
-      },
-    },
-  });
-
-  const { data } = await supabase.auth.getClaims();
-  const signedIn = Boolean(data?.claims?.sub);
-  const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
-
-  if (!signedIn && !isPublic && !path.startsWith("/api/")) return redirectTo(request, "/login");
-  if (signedIn && path === "/login") return redirectTo(request, APP_HOME);
-  return response;
+  if (!realMode) return path === "/login" ? redirectTo(request, APP_HOME) : NextResponse.next();
+  const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!hasSession && isAppPath(path)) return redirectTo(request, "/login");
+  if (hasSession && path === "/login") return redirectTo(request, APP_HOME);
+  return NextResponse.next();
 }
 
 export const config = {
-  // Skip all Next.js internals (including the live-reload connection), the PWA manifest, icons and the service worker.
-  matcher: ["/((?!_next/|favicon.ico|manifest.webmanifest|sw.js|pwa-icon|icon|apple-icon).*)"],
+  // Skip all Next.js internals (including the live-reload connection), the API routes, the PWA manifest, icons and the service worker.
+  matcher: ["/((?!_next/|api/|favicon.ico|manifest.webmanifest|sw.js|pwa-icon|icon|apple-icon).*)"],
 };

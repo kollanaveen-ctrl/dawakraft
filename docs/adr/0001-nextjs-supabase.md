@@ -1,6 +1,6 @@
 # ADR 0001: Next.js App Router + Supabase
 
-- **Status:** Accepted
+- **Status:** Accepted; the Supabase part is superseded by [ADR 0007](0007-cloudflare-d1-r2-on-vercel.md) (Next.js stays)
 - **Date:** recorded 2026-10-22 (the decision predates this record)
 
 ## Context

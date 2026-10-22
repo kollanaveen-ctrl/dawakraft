@@ -3,7 +3,8 @@ import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { demoAiAllowed } from "../config";
 import { allow, claimAiUse, type AiKind } from "../rate-limit";
-import { signedIn } from "../supabase/server";
+import { getSession } from "../auth/server";
+import { d1 } from "../cloudflare/d1";
 import type { AiErrorCode, AiProvider } from "./types";
 import { UNLOCK_COOKIE, canUseAi, clientIp, demoPasscode, verifyUnlock } from "./unlock";
 
@@ -74,7 +75,13 @@ async function hasValidUnlock(): Promise<boolean> {
  */
 export async function checkAiAccess(provider: AiProvider, kind: AiKind, limit: number, tag: string): Promise<NextResponse | null> {
   if (!provider.paid) return null;
-  const session = await signedIn();
+  let session: Awaited<ReturnType<typeof getSession>>;
+  try {
+    session = await getSession();
+  } catch (error) {
+    console.error(`[${tag}] session check failed`, error instanceof Error ? error.message : error);
+    return aiFailure("failed", 503);
+  }
   const demoLocal = !session && demoAiAllowed();
   const cookieValid = !session && !demoLocal && (await hasValidUnlock());
   const mode = canUseAi({ session: Boolean(session), demoLocal, cookieValid });
@@ -85,8 +92,8 @@ export async function checkAiAccess(provider: AiProvider, kind: AiKind, limit: n
   }
   try {
     const withinLimit =
-      allow(`${kind}:${session?.user.id ?? "demo"}`, limit, AI_WINDOW_MS) &&
-      (!session || (await claimAiUse(session.supabase, kind, limit, AI_WINDOW_MS)));
+      allow(`${kind}:${session?.userId ?? "demo"}`, limit, AI_WINDOW_MS) &&
+      (!session || (await claimAiUse(d1(), session.userId, kind, limit, AI_WINDOW_MS)));
     return withinLimit ? null : aiFailure("rate_limited", 429);
   } catch (error) {
     console.error(`[${tag}] usage check failed`, error);

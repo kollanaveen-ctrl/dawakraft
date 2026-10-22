@@ -1,6 +1,6 @@
 "use client";
 // Demo-mode storage: products, company profile and photos kept in this browser (IndexedDB),
-// so the whole app can be tried before Supabase is set up. Nothing leaves the computer.
+// so the whole app can be tried before the Cloudflare database is switched on. Nothing leaves the computer.
 import type { Company, Product } from "../types";
 
 const DB_NAME = "dawakraft-demo";

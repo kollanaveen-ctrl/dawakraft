@@ -1,51 +1,80 @@
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, type FormEvent } from "react";
+// Sign in with an emailed 6-digit code: step 1 asks for the email, step 2 for the code.
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 import { Brand } from "@/components/AppBar";
-import { supabaseBrowser } from "@/lib/supabase/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RESEND_AFTER_S = 60;
+
+const START_ERRORS: Record<string, string> = {
+  rate_limited: "Too many codes asked for. Wait 10 minutes, then try again.",
+  bad_request: "Enter a valid email address.",
+  not_configured: "Sign-in isn't switched on yet. Ask whoever set up Dawakraft to finish the setup.",
+};
+const VERIFY_ERRORS: Record<string, string> = {
+  invalid_code: "That code didn't work. Check it, or send a new one. Codes last 10 minutes.",
+  bad_request: "Type the 6 digits from the email.",
+  rate_limited: "Too many tries. Wait a few minutes, then send a new code.",
+  not_configured: START_ERRORS.not_configured,
+};
+const NETWORK_ERROR = "Couldn't reach Dawakraft. Check your connection and try again.";
+
+/** POST JSON to an auth route; returns the error code, or null when it worked. */
+async function post(path: string, body: unknown): Promise<string | null> {
+  try {
+    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    return res.ok && json?.ok ? null : (json?.error ?? "network");
+  } catch {
+    return "network";
+  }
+}
 
 function LoginForm() {
   const router = useRouter();
-  const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState(
-    params.get("error") === "link" ? "That link has expired or was opened in another browser. Type the code from the email instead, or send a new one." : "",
-  );
-  const [isError, setIsError] = useState(params.get("error") === "link");
+  const [wait, setWait] = useState(0);
+  const [status, setStatus] = useState("");
+  const [isError, setIsError] = useState(false);
+
+  // Count down to "Send a new code".
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
 
   function show(text: string, err = false) {
     setStatus(text);
     setIsError(err);
   }
 
-  async function sendLink(e: FormEvent) {
-    e.preventDefault();
+  async function sendCode(e?: FormEvent) {
+    e?.preventDefault();
     const clean = email.trim().toLowerCase();
     if (!EMAIL_RE.test(clean)) return show("Enter a valid email address.", true);
     setBusy(true);
-    const { error } = await supabaseBrowser().auth.signInWithOtp({
-      email: clean,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
+    const error = await post("/api/auth/start", { email: clean });
     setBusy(false);
-    if (error) return show("Couldn't send the email. Wait a minute and try again.", true);
+    if (error) return show(START_ERRORS[error] ?? "Couldn't send the email. Wait a minute and try again.", true);
     setSent(true);
-    show(`We sent a sign-in email to ${clean}. Tap the link in it, or type the code here.`);
+    setCode("");
+    setWait(RESEND_AFTER_S);
+    show(`We sent a 6-digit code to ${clean}. It works for 10 minutes. Check spam if you don't see it.`);
   }
 
   async function verify(e: FormEvent) {
     e.preventDefault();
-    const token = code.replace(/\D/g, "");
-    if (token.length < 6) return show("Type the code from the email.", true);
+    const digits = code.replace(/\D/g, "");
+    if (digits.length !== 6) return show("Type the 6 digits from the email.", true);
     setBusy(true);
-    const { error } = await supabaseBrowser().auth.verifyOtp({ email: email.trim().toLowerCase(), token, type: "email" });
+    const error = await post("/api/auth/verify", { email: email.trim().toLowerCase(), code: digits });
     setBusy(false);
-    if (error) return show("That code didn't work. Check it, or send a new email.", true);
+    if (error) return show(error === "network" ? NETWORK_ERROR : (VERIFY_ERRORS[error] ?? "Couldn't sign in. Try again."), true);
     router.replace("/catalog");
     router.refresh();
   }
@@ -56,33 +85,45 @@ function LoginForm() {
         <p className="mono muted">Sign in</p>
         <h1>Your product catalog</h1>
         <p className="muted" style={{ marginTop: 6 }}>
-          Use your work email. No password: we email you a sign-in link and code.
+          Use your work email. No password: we email you a 6-digit code.
         </p>
       </div>
       {!sent ? (
-        <form className="stack" onSubmit={sendLink}>
+        <form className="stack" onSubmit={sendCode}>
           <label className="field" htmlFor="email">
             Email
             <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </label>
           <button className="btn primary" disabled={busy}>
-            {busy ? "Sending…" : "Email me a sign-in link"}
+            {busy ? "Sending…" : "Email me a code"}
           </button>
         </form>
       ) : (
         <form className="stack" onSubmit={verify}>
           <label className="field" htmlFor="code">
             Code from the email
-            <input id="code" type="text" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
+            <input
+              id="code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={7}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              autoFocus
+            />
           </label>
           <div className="row">
             <button className="btn primary" disabled={busy}>
               {busy ? "Checking…" : "Sign in"}
             </button>
-            <button type="button" className="btn ghost" onClick={() => { setSent(false); setCode(""); show(""); }}>
-              Use another email
+            <button type="button" className="btn ghost" disabled={busy || wait > 0} onClick={() => void sendCode()}>
+              {wait > 0 ? `Send a new code in ${wait}s` : "Send a new code"}
             </button>
           </div>
+          <button type="button" className="btn ghost" onClick={() => { setSent(false); setCode(""); setWait(0); show(""); }}>
+            Use another email
+          </button>
         </form>
       )}
       <p className={`status${isError ? " err" : ""}`} aria-live="polite">{status}</p>
@@ -99,9 +140,7 @@ export default function LoginPage() {
         </div>
       </header>
       <main className="wrap">
-        <Suspense>
-          <LoginForm />
-        </Suspense>
+        <LoginForm />
       </main>
     </>
   );

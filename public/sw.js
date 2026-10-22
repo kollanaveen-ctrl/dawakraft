@@ -1,5 +1,5 @@
 // Minimal service worker so Dawakraft can be installed on a phone's home screen.
-// Pages always come from the network (the catalog lives in Supabase); only the app's
+// Pages always come from the network (the catalog lives in Cloudflare D1); only the app's
 // built files are cached, and an offline notice is shown when there is no signal.
 const CACHE = "dawakraft-v1";
 

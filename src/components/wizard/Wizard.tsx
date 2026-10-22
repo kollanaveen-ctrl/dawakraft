@@ -208,13 +208,20 @@ export function Wizard({ product }: { product: Product | null }) {
     idRef.current ??= crypto.randomUUID();
     const id = idRef.current;
     let uploaded: string | null = null;
+    // While photo storage isn't switched on, the details still save; the picture waits.
+    let photoSkipped = false;
     try {
       let imagePath = product?.imagePath ?? null;
       if (cut && (files.length || rots.front)) {
         const blob = await productImageBlob(cut);
-        uploaded = await repo.uploadMedia(userId, `products/${id}`, blob);
-        imagePath = uploaded;
-        primeMediaImage(uploaded, await loadImage(URL.createObjectURL(blob)));
+        try {
+          uploaded = await repo.uploadMedia(userId, `products/${id}`, blob);
+          imagePath = uploaded;
+          primeMediaImage(uploaded, await loadImage(URL.createObjectURL(blob)));
+        } catch (e) {
+          if (!repo.storageOff(e)) throw e;
+          photoSkipped = true;
+        }
       }
       const now = new Date().toISOString();
       const saved = await repo.saveProduct({
@@ -230,7 +237,7 @@ export function Wizard({ product }: { product: Product | null }) {
       });
       if (uploaded && product?.imagePath) await repo.removeMedia([product.imagePath]);
       putProduct(saved);
-      toast("Saved to catalog");
+      toast(photoSkipped ? "Saved without the photo: photo storage isn't switched on yet" : "Saved to catalog");
       router.push(`/product/${saved.id}`);
     } catch (e) {
       if (uploaded) await repo.removeMedia([uploaded]);

@@ -1,5 +1,5 @@
-// Limits on AI calls per user, so one account can't run up the Claude bill.
-import type { SupabaseClient } from "@supabase/supabase-js";
+// Limits on AI calls per user, so one account can't run up the AI bill.
+import type { D1Client } from "./cloudflare/d1";
 
 type Window = { start: number; count: number };
 const windows = new Map<string, Window>();
@@ -16,23 +16,20 @@ export function allow(key: string, limit: number, windowMs: number, now = Date.n
   return true;
 }
 
-/** Matches the ai_usage.kind check (0004_promo.sql). */
+/** Matches the ai_usage.kind check (cloudflare/migrations/0001_init.sql). */
 export type AiKind = "read" | "sort" | "copy" | "photo";
 
 /**
- * The real limit, shared by every server instance. It records this call first and then counts,
- * so many requests sent at the same moment can't all slip under the limit (each one sees the
- * others' rows). Returns false when the user is over the limit.
+ * The real limit, shared by every server instance. It records this call first and then counts
+ * (both in one D1 request), so many requests sent at the same moment can't all slip under the
+ * limit (each one sees the others' rows). Only this owner's rows are counted. Returns false
+ * when the user is over the limit.
  */
-export async function claimAiUse(supabase: SupabaseClient, kind: AiKind, limit: number, windowMs: number): Promise<boolean> {
-  const { error: insertError } = await supabase.from("ai_usage").insert({ kind });
-  if (insertError) throw insertError;
-  const since = new Date(Date.now() - windowMs).toISOString();
-  const { count, error } = await supabase
-    .from("ai_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("kind", kind)
-    .gte("created_at", since);
-  if (error) throw error;
-  return (count ?? 0) <= limit;
+export async function claimAiUse(db: D1Client, ownerId: string, kind: AiKind, limit: number, windowMs: number, now = new Date()): Promise<boolean> {
+  const since = new Date(now.getTime() - windowMs).toISOString();
+  const [, counted] = await db.batch<{ n: number }>([
+    { sql: "INSERT INTO ai_usage (owner_id, kind, created_at) VALUES (?, ?, ?)", params: [ownerId, kind, now.toISOString()] },
+    { sql: "SELECT COUNT(*) AS n FROM ai_usage WHERE owner_id = ? AND kind = ? AND created_at >= ?", params: [ownerId, kind, since] },
+  ]);
+  return Number(counted?.[0]?.n ?? 0) <= limit;
 }
