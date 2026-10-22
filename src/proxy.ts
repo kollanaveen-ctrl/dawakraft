@@ -22,7 +22,8 @@ export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (!realMode) return path === "/login" ? redirectTo(request, APP_HOME) : NextResponse.next();
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
-  if (!hasSession && isAppPath(path)) return redirectTo(request, "/login");
+  // The front door asks for the passcode too: signed-out visitors never see the landing page.
+  if (!hasSession && (path === "/" || isAppPath(path))) return redirectTo(request, "/login");
   if (hasSession && path === "/login") return redirectTo(request, APP_HOME);
   return NextResponse.next();
 }

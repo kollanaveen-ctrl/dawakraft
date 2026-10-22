@@ -18,6 +18,12 @@ const VERIFY_ERRORS: Record<string, string> = {
   rate_limited: "Too many tries. Wait a few minutes, then send a new code.",
   not_configured: START_ERRORS.not_configured,
 };
+const PASSCODE_ERRORS: Record<string, string> = {
+  invalid_code: "That passcode isn't right.",
+  bad_request: "Enter the passcode.",
+  rate_limited: "Too many tries. Wait 10 minutes, then try again.",
+  not_configured: START_ERRORS.not_configured,
+};
 const NETWORK_ERROR = "Couldn't reach Dawakraft. Check your connection and try again.";
 
 /** POST JSON to an auth route; returns the error code, or null when it worked. */
@@ -40,6 +46,8 @@ function LoginForm() {
   const [wait, setWait] = useState(0);
   const [status, setStatus] = useState("");
   const [isError, setIsError] = useState(false);
+  const [useEmail, setUseEmail] = useState(false);
+  const [passcode, setPasscode] = useState("");
 
   // Count down to "Send a new code".
   useEffect(() => {
@@ -51,6 +59,17 @@ function LoginForm() {
   function show(text: string, err = false) {
     setStatus(text);
     setIsError(err);
+  }
+
+  async function submitPasscode(e: FormEvent) {
+    e.preventDefault();
+    if (!passcode.trim()) return show(PASSCODE_ERRORS.bad_request, true);
+    setBusy(true);
+    const error = await post("/api/auth/passcode", { passcode: passcode.trim() });
+    setBusy(false);
+    if (error) return show(error === "network" ? NETWORK_ERROR : (PASSCODE_ERRORS[error] ?? "Couldn't sign in. Try again."), true);
+    router.replace("/catalog");
+    router.refresh();
   }
 
   async function sendCode(e?: FormEvent) {
@@ -84,11 +103,30 @@ function LoginForm() {
       <div>
         <p className="mono muted">Sign in</p>
         <h1>Your product catalog</h1>
-        <p className="muted" style={{ marginTop: 6 }}>
-          Use your work email. No password: we email you a 6-digit code.
-        </p>
       </div>
-      {!sent ? (
+      {!useEmail ? (
+        <form className="stack" onSubmit={submitPasscode}>
+          <label className="field" htmlFor="passcode">
+            Passcode
+            <input
+              id="passcode"
+              type="password"
+              autoComplete="off"
+              maxLength={100}
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              autoFocus
+              required
+            />
+          </label>
+          <button className="btn primary" disabled={busy}>
+            {busy ? "Checking…" : "Enter"}
+          </button>
+          <button type="button" className="btn ghost" onClick={() => { setUseEmail(true); show(""); }}>
+            Use an email code instead
+          </button>
+        </form>
+      ) : !sent ? (
         <form className="stack" onSubmit={sendCode}>
           <label className="field" htmlFor="email">
             Email
