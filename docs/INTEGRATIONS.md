@@ -31,6 +31,7 @@ Set them in `.env.local` on your computer and in **Vercel → Project → Settin
 | `OPENROUTER_CATEGORY_MODEL` | same | No | Optional category model. Must start with `google/`, otherwise the default `google/gemini-3.5-flash-lite` is used. |
 | `AI_PROVIDER` | `src/lib/ai/index.ts` | No | `anthropic`, `gemini`, `mock` or `off`. See below. |
 | `NEXT_PUBLIC_SITE_URL` | `src/lib/site.ts` | No | Public address for canonical links, sitemap and share cards. Default `https://dawakraft.vercel.app`. |
+| `DEMO_PASSCODE` | `src/lib/ai/unlock.ts`, `src/app/api/demo-unlock/route.ts`, `src/lib/ai/access.ts` | **Yes. Never prefix with `NEXT_PUBLIC_`; never log or commit it.** | Optional online demo passcode that unlocks paid AI without sign-in. See "Online demo passcode". |
 
 A value that is empty or still contains `your-`, `your_`, `example`, `placeholder` or `xxxx` counts as **not set** (`isRealValue` in `config.ts`). That is how the copied `.env.example` placeholders keep the app in demo mode.
 
@@ -117,9 +118,22 @@ Upper/lower case and surrounding spaces are ignored.
 
 ---
 
+## Online demo passcode
+
+While the online site has no login, paid AI (box reading and category sorting) is off for visitors. A shared passcode turns it on for people you trust:
+
+1. In **Vercel → Project → Settings → Environment Variables**, add `DEMO_PASSCODE` for **Production** with a long, unguessable value (it must not contain `your-`, `example`, `placeholder` or `xxxx`, or it counts as unset), then redeploy.
+2. Share it only with your team and the judges. Visitors type it into the **Demo passcode** box that appears under "Read box with AI" (or "Fill missing categories with AI") and press **Unlock AI**.
+3. That browser is unlocked for 12 hours (an httpOnly cookie signed with the passcode). Changing `DEMO_PASSCODE` cancels every unlock at once.
+4. **Delete `DEMO_PASSCODE` once login exists.**
+
+Limits for unlocked visitors, per IP address and per server instance: 8 passcode tries, 15 box reads and 6 category sorts per 10 minutes. Without `DEMO_PASSCODE` (or with a placeholder value) nothing changes.
+
+---
+
 ## Vercel
 
-**Purpose:** builds and hosts the site, runs the two API routes and `proxy.ts`.
+**Purpose:** builds and hosts the site, runs the three API routes (`read-box`, `categorize`, `demo-unlock`) and `proxy.ts`.
 
 **Free tier (check current terms):** the Hobby plan is free for personal, non-commercial projects; commercial use needs a paid plan. Function duration, bandwidth and build minutes are limited. The AI routes set `maxDuration = 120` seconds, which must be allowed by your plan.
 

@@ -17,6 +17,7 @@ import { aiImage } from "@/lib/image/encode";
 import { NEW_LAUNCH_DAYS } from "@/lib/segments";
 import type { AiReadResult, DraftFields } from "@/lib/types";
 import "@/styles/ai.css";
+import { DemoUnlock } from "../DemoUnlock";
 
 type Low = Partial<Record<FieldKey, true>>;
 
@@ -37,7 +38,8 @@ type Props = {
 
 const AI_ERRORS: Record<string, string> = {
   not_signed_in: "Your sign-in expired. Reload the page and sign in again.",
-  demo_online: "AI reading is switched off on the online demo until sign-in is added. Type the details from the carton.",
+  demo_online:
+    "AI reading on the online demo needs the demo passcode (until sign-in is added). Enter it below, or type the details from the carton.",
   not_configured: "AI reading isn't set up yet. Type the details from the carton.",
   rate_limited: "AI is busy right now. Wait a minute, then try again.",
   image_rejected: "One photo couldn't be used. Try a different photo.",
@@ -100,6 +102,8 @@ export function DetailsStep({
   const [status, setStatus] = useState({ text: "", err: false });
   const [reading, setReading] = useState(false);
   const [last, setLast] = useState<Reading>(NO_READING);
+  // 0 hides the passcode form; each new "needs passcode" answer remounts it fresh.
+  const [unlockKey, setUnlockKey] = useState(0);
 
   function set(k: FieldKey, v: string) {
     const nextLow = { ...low };
@@ -140,9 +144,11 @@ export function DetailsStep({
       if (!res.ok || !body?.ok) {
         const error = body && !body.ok ? body.error : "";
         const code = demoMode && error === "not_signed_in" ? "demo_online" : error;
+        setUnlockKey((k) => (code === "demo_online" ? k + 1 : 0));
         setStatus({ text: AI_ERRORS[code] ?? AI_FALLBACK, err: true });
         return;
       }
+      setUnlockKey(0);
       applyReading(body.data, body.meta.mock);
     } catch {
       setStatus({ text: AI_FALLBACK, err: true });
@@ -169,6 +175,7 @@ export function DetailsStep({
         </div>
       )}
       <p className={`status${status.err ? " err" : ""}`} aria-live="polite">{status.text}</p>
+      {unlockKey > 0 && <DemoUnlock key={unlockKey} onUnlocked={readWithAi} />}
       <div className="form-grid">
         <Field k="name" label="Brand name" low={low} evidence={ev("name")}>{text("name")}</Field>
         <Field k="category" label="Category" low={low} evidence={ev("category")}>{select("category", CATEGORIES)}</Field>

@@ -8,6 +8,7 @@ import * as repo from "@/lib/data/repo";
 import { mrpText, plural } from "@/lib/format";
 import type { Product } from "@/lib/types";
 import { useData } from "./DataProvider";
+import { DemoUnlock } from "./DemoUnlock";
 import { useToast } from "./Toast";
 
 const PREVIEW_ROWS = 12;
@@ -15,7 +16,8 @@ const SORT_FALLBACK = "Couldn't sort the categories. Try again.";
 const SORT_ERRORS: Record<string, string> = {
   not_configured: "AI sorting isn't set up yet (add your Claude key). You can still import; missing categories become Other.",
   not_signed_in: "Your sign-in expired. Reload the page and sign in again.",
-  demo_online: "AI sorting is switched off on the online demo until sign-in is added. You can still import; missing categories become Other.",
+  demo_online:
+    "AI sorting on the online demo needs the demo passcode (until sign-in is added). Enter it below, or import as is; missing categories become Other.",
   rate_limited: "AI is busy right now. Wait a minute, then try again.",
   out_of_credits:
     "The AI credits have run out. Type the details from the carton, and ask the organisers for more credits.",
@@ -68,6 +70,8 @@ export function ImportView() {
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [status, setStatus] = useState({ text: "", err: false });
   const [busy, setBusy] = useState(false);
+  // 0 hides the passcode form; each new "needs passcode" answer remounts it fresh.
+  const [unlockKey, setUnlockKey] = useState(0);
   const missingCats = rows.some((r) => !r.category);
 
   function preview(source = text) {
@@ -98,9 +102,11 @@ export function ImportView() {
       if (!res.ok || !body?.ok) {
         const error = body && !body.ok ? body.error : "";
         const code = demoMode && error === "not_signed_in" ? "demo_online" : error;
+        setUnlockKey((k) => (code === "demo_online" ? k + 1 : 0));
         setStatus({ text: SORT_ERRORS[code] ?? SORT_FALLBACK, err: true });
         return;
       }
+      setUnlockKey(0);
       const found = new Map(body.data.filter((x) => (CATEGORIES as readonly string[]).includes(x.category)).map((x) => [x.i, x.category]));
       setRows((cur) => cur.map((r, i) => (!r.category && found.has(i) ? { ...r, category: found.get(i) } : r)));
       setStatus({ text: sortSummary(found.size, body.meta.mock), err: false });
@@ -181,6 +187,7 @@ export function ImportView() {
           )}
         </div>
         <p className={`status${status.err ? " err" : ""}`} aria-live="polite">{status.text}</p>
+        {unlockKey > 0 && missingCats && <DemoUnlock key={unlockKey} onUnlocked={fillCategories} />}
         {rows.length > 0 && (
           <div className="table-wrap">
             <table>

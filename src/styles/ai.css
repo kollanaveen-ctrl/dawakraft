@@ -25,3 +25,50 @@
 .notice.ai-mock p {
   margin: 0;
 }
+
+/* Online demo passcode form under the AI status line. Wraps to a full-width stack on phones. */
+.demo-unlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--sunken);
+}
+.demo-unlock-form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.demo-unlock-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.demo-unlock-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.demo-unlock-row input[type="password"] {
+  flex: 1 1 180px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 16px; /* stops iOS zooming into the field */
+}
+.demo-unlock-row input[type="password"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.demo-unlock .status {
+  margin: 0;
+}
+@media (max-width: 420px) {
+  .demo-unlock-row .btn {
+    flex: 1 1 100%;
+  }
+}
