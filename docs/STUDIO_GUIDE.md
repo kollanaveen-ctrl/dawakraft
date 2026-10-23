@@ -1,6 +1,6 @@
 # Dawakraft: original packaging, WhatsApp Story
 
-Run `npm run studio` from the app folder, then open http://127.0.0.1:3012/new. Keep the terminal open. This local mode uses the existing server-side AI connection and stores editable products/photos in this browser. Download your flyers as backups; clearing browser data removes local saved work.
+Run `npm run studio` from the app folder, then open http://127.0.0.1:3012/new. Keep the terminal open and sign in with the existing passcode. This now uses Cloudflare D1 for products and R2 for photos, with the same account settings as the live app. R2 credentials and bucket CORS must be configured before photos can be saved. Existing browser-only drafts are not automatically migrated or deleted.
 
 ## Make a flyer
 
@@ -26,4 +26,4 @@ Automated browser checks use a fictional pack: single batch upload, unordered vi
 
 Real OpenRouter checks use fictional product information only. AI-suggested uses require leaflet review; generated context images still need visual inspection. Physical phone WhatsApp sharing and real-product fidelity require testing with suitable original photos.
 
-This mode has not deployed the public website. The local configuration includes D1 settings and an R2 bucket name but lacks R2 access/secret credentials. Cloud persistence and the deployed environment remain unverified. Never send keys in chat.
+The public studio is deployed at https://dawakraft.vercel.app/new. Cloudflare mode is enabled locally too. Photo storage requires `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`; keep these in the private environment settings, never in chat or Git. Functional QA that needs browser-only storage must explicitly set `STUDIO_DATA_BACKEND=demo` before running the local studio.

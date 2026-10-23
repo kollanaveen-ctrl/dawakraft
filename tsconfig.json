@@ -42,7 +42,9 @@
     ".next-verify-packshot/types/**/*.ts",
     ".next-verify-packshot/dev/types/**/*.ts",
     ".next-verify-story/types/**/*.ts",
-    ".next-verify-story/dev/types/**/*.ts"
+    ".next-verify-story/dev/types/**/*.ts",
+    ".next-cloudflare/types/**/*.ts",
+    ".next-cloudflare/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
