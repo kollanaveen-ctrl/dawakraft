@@ -60,7 +60,9 @@
     ".next-verify-story-final/types/**/*.ts",
     ".next-verify-story-final/dev/types/**/*.ts",
     ".next-verify-integrated/types/**/*.ts",
-    ".next-verify-integrated/dev/types/**/*.ts"
+    ".next-verify-integrated/dev/types/**/*.ts",
+    ".next-verify-editorial-fresh/types/**/*.ts",
+    ".next-verify-editorial-fresh/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
