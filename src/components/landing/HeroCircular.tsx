@@ -1,69 +1,42 @@
-"use client";
-// The landing page hero: a real circular drawn by the app's own renderer, with a 3D pack shot
-// built from sample carton faces, cycling through the layouts.
-import { useEffect, useState } from "react";
-import { CircularCanvas } from "@/components/CircularCanvas";
-import { SAMPLE, TEMPLATES, type TemplateKey } from "@/lib/constants";
-import { EMPTY_COMPANY } from "@/lib/data/mappers";
-import { composePackShot } from "@/lib/image/packshot";
+import Link from "next/link";
 
-const CYCLE_MS = 3800;
-// The Promo circular is landscape and needs its own content, so the portrait hero skips it.
-const HERO_TEMPLATES = TEMPLATES.filter(([k]) => k !== "promo");
-const COMPANY = {
-  ...EMPTY_COMPANY,
-  name: "Sri Balaji Pharma",
-  tagline: "Pharmaceutical distributor, Hyderabad",
-  phone: "+91 98480 00000",
-  email: "orders@sribalaji.example",
-  address: "Koti, Hyderabad",
-  licence: "TS/HYD/20B-0000",
-};
-
-function face(w: number, h: number, label: string, sub: string): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const x = c.getContext("2d");
-  if (!x) return c;
-  x.fillStyle = "#FFFFFF";
-  x.fillRect(0, 0, w, h);
-  x.fillStyle = "#0E5E4E";
-  x.fillRect(0, 0, w, h * 0.42);
-  x.fillStyle = "#E9A23B";
-  x.fillRect(0, h * 0.42, w, h * 0.04);
-  x.fillStyle = "#FFFFFF";
-  x.font = `800 ${Math.round(Math.min(h * 0.11, w * 0.15))}px sans-serif`;
-  x.fillText(label, w * 0.08, h * 0.27);
-  x.fillStyle = "#24302C";
-  x.font = `500 ${Math.round(Math.min(h * 0.05, w * 0.075))}px sans-serif`;
-  x.fillText(sub, w * 0.08, h * 0.62);
-  return c;
-}
-
+/** A fictional design specimen, never presented as an uploaded or verified medicine pack. */
 export function HeroCircular() {
-  const [image, setImage] = useState<HTMLCanvasElement | null>(null);
-  const [i, setI] = useState(0);
-
-  useEffect(() => {
-    const shot = composePackShot(
-      face(420, 600, "Exampol 650", "Paracetamol IP 650 mg"),
-      face(150, 600, "650", "10 × 15 tablets"),
-      face(420, 150, "EXAMPOL", ""),
-    );
-    Promise.resolve().then(() => setImage(shot));
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = setInterval(() => setI((n) => (n + 1) % HERO_TEMPLATES.length), CYCLE_MS);
-    return () => clearInterval(t);
-  }, []);
-
-  const template: TemplateKey = HERO_TEMPLATES[i][0];
   return (
-    <figure className="hero-art">
-      <CircularCanvas product={SAMPLE} company={COMPANY} template={template} image={image} logo={null} width={720} label="Example product circular made by Dawakraft" />
-      <figcaption>
-        <span className="mono">{HERO_TEMPLATES[i][1]} layout</span> · drawn by the app from sample photos
-      </figcaption>
+    <figure className="hero-specimen">
+      <div className="specimen-stage">
+        <div className="specimen-margin" aria-hidden="true"><span>DAWAKRAFT / DESIGN STUDY</span><span>01 — NUTRITION</span></div>
+        <div className="specimen-story" role="img" aria-label="Illustrative WhatsApp Story flyer: Calvia D3, calcium and vitamin D3, with a sample carton and an editorial walking illustration">
+          <div className="specimen-brand"><span>THE DAILY FORMULA</span><span>09:16</span></div>
+          <div className="specimen-title">Calvia<span>D3</span></div>
+          <p className="specimen-formula">Calcium + Vitamin D3<br />An illustrative formulation</p>
+          <div className="specimen-headline">Good design.<br /><em>In every detail.</em></div>
+          <svg className="specimen-illustration" viewBox="0 0 340 340" aria-hidden="true">
+            <circle cx="242" cy="103" r="91" fill="#EBDDC8" />
+            <circle cx="261" cy="74" r="40" fill="#C8663F" />
+            <path d="M96 296H340V340H56V319H96Z" fill="#B7C8BC" />
+            <path d="M195 145 219 144 222 206 199 260 175 254 194 200Z" fill="#174B42" />
+            <path d="M217 185 248 212 263 269 241 275 220 231 199 218Z" fill="#286455" />
+            <path d="m177 251 22 7-2 16-38-2q-7-6 4-11Z" fill="#263D34" />
+            <path d="m241 269 22-6 13 16q3 6-4 8l-33 1Z" fill="#263D34" />
+            <path d="M190 111q19-20 37-1l9 80-48 4-9-47Z" fill="#D37850" />
+            <path d="m185 119-26 32-30 3-2 11 43-2 29-29M220 117l22 27 30-8 4 9-38 15-29-24" fill="none" stroke="#C48D69" strokeWidth="12" strokeLinecap="round" />
+            <path d="m207 94-1 18 13 1 1-18" fill="#C48D69" />
+            <ellipse cx="214" cy="77" rx="18" ry="23" fill="#D4A17D" />
+            <path d="M196 81q-12-35 15-34 30-3 23 32l-9-14q-17 3-21-4Z" fill="#253E35" />
+            <path d="M302 298q-16-64 12-113M309 244q-33-2-27-27 22 3 27 27M312 226q-2-32 20-34 6 25-20 34M303 274q-35-3-32-29 25 4 32 29" stroke="#6C8B70" strokeWidth="3" fill="#829D7D" />
+            <path d="M105 305H305" stroke="#174B42" strokeWidth="1" opacity=".35" />
+          </svg>
+          <div className="specimen-pack" aria-hidden="true">
+            <div className="specimen-pack-side">CALVIA D3<span>ILLUSTRATIVE PACK</span></div>
+            <div className="specimen-pack-front"><small>THE DAILY FORMULA</small><strong>Calvia<span>D3</span></strong><p>Calcium +<br />Vitamin D3</p><div className="specimen-pack-orbit">C<span>+</span></div><footer>30 TABLETS<span>SAMPLE</span></footer></div>
+          </div>
+          <div className="specimen-product-note"><span>01 / THE PRODUCT</span><p>Distinctive packaging.<br />A place of its own.</p></div>
+          <div className="specimen-story-footer"><strong>YOUR BRAND, BEAUTIFULLY PRESENTED.</strong><span>Fictional product · Design illustration only</span></div>
+        </div>
+        <div className="specimen-format"><span>1080 × 1920</span><strong>Made for WhatsApp.</strong><span>Ready to share ↗</span></div>
+      </div>
+      <figcaption><div><span className="specimen-caption-label">THE FINISHED LOOK</span><strong>A small screen.<br />A stronger impression.</strong></div><Link href="/new" className="specimen-create" aria-label="Create your own product flyer">Create yours <span aria-hidden="true">↗</span></Link></figcaption>
     </figure>
   );
 }

@@ -90,17 +90,11 @@ export default function HomePage() {
           </div>
           <div className="studio-preview">
             <div className="preview-topline">
-              <span className="preview-status" /> THE CIRCULAR STUDIO
-              <span>Preview / 01</span>
+              <span className="preview-status" /> THE FLYER STUDIO
+              <span>STORY EDITION</span>
             </div>
             <HeroCircular />
-            <div className="preview-stamp">
-              <span aria-hidden="true">✓</span>
-              <div>
-                One company. One clear identity.
-                <small>Sample product · illustrative details</small>
-              </div>
-            </div>
+
           </div>
         </section>
 
