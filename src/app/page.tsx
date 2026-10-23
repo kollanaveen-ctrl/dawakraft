@@ -90,8 +90,8 @@ export default function HomePage() {
           </div>
           <div className="studio-preview">
             <div className="preview-topline">
-              <span className="preview-status" /> THE FLYER STUDIO
-              <span>STORY EDITION</span>
+              <span className="preview-status" /> EXPORTED FROM DAWAKRAFT
+              <span>1080 × 1920</span>
             </div>
             <HeroCircular />
 

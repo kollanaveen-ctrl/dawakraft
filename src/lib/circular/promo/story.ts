@@ -31,46 +31,47 @@ function block(ctx: Ctx, text: string, x: number, y: number, w: number, h: numbe
 /** 9:16 WhatsApp Story, with space above and below the essential content for app controls. */
 export function drawStoryPromo(ctx: Ctx, { product: p, company: c, promo, theme: t, image, photo, logo }: PromoInput) {
   ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 1080, 1920);
-  ctx.fillStyle = t.wash; ctx.fillRect(0, 0, 1080, 1130);
   if (photo) {
-    const [iw, ih] = imageSize(photo), w = 800, h = 1050;
+    const [iw, ih] = imageSize(photo), w = 800, h = 1420;
     const scale = Math.max(w / iw, h / ih);
     ctx.save();
-    if (promo.layout === "portrait") { ctx.beginPath(); ctx.ellipse(780, 600, 390, 540, 0, 0, Math.PI * 2); ctx.clip(); }
-    ctx.drawImage(photo, Math.max(0, iw - w / scale), 0, w / scale, h / scale, 280, 60, w, h);
+    if (promo.layout === "portrait") { ctx.beginPath(); ctx.ellipse(830, 790, 400, 700, 0, 0, Math.PI * 2); ctx.clip(); }
+    ctx.drawImage(photo, Math.max(0, iw - w / scale), Math.max(0, (ih - h / scale) / 2), w / scale, h / scale, 280, 70, w, h);
     ctx.restore();
-    const fade = ctx.createLinearGradient(0, 0, 900, 0);
-    fade.addColorStop(0, "#FFFFFF"); fade.addColorStop(.35, "#FFFFFFF2"); fade.addColorStop(1, "#FFFFFF00");
-    ctx.fillStyle = fade; ctx.fillRect(0, 0, 1080, 1130);
-    const bottom = ctx.createLinearGradient(0, 850, 0, 1140);
+    const fade = ctx.createLinearGradient(180, 0, 830, 0);
+    fade.addColorStop(0, "#FFFFFF"); fade.addColorStop(.4, "#FFFFFFE8"); fade.addColorStop(1, "#FFFFFF00");
+    ctx.fillStyle = fade; ctx.fillRect(0, 0, 1080, 1490);
+    const bottom = ctx.createLinearGradient(0, 1280, 0, 1520);
     bottom.addColorStop(0, "#FFFFFF00"); bottom.addColorStop(1, "#FFFFFF");
-    ctx.fillStyle = bottom; ctx.fillRect(0, 850, 1080, 300);
+    ctx.fillStyle = bottom; ctx.fillRect(0, 1280, 1080, 250);
   }
-  ctx.fillStyle = t.badge; ctx.fillRect(64, 142, 62, 7);
-  block(ctx, p.name, 64, 172, 950, 170, 88, t.title, 800);
-  block(ctx, p.composition, 68, 355, 650, 145, 35, "#253342");
-  block(ctx, promo.headline, 68, 520, 570, 175, 58, t.title, 800);
+  ctx.fillStyle = t.ribbon; ctx.fillRect(64, 126, 76, 7);
+  block(ctx, p.name, 60, 155, 955, 155, 112, t.title, 800);
+  block(ctx, p.composition, 66, 325, 670, 120, 39, "#253342");
+  block(ctx, promo.headline, 66, 470, 610, 172, 65, t.title, 800);
   if (promo.banner) {
-    ctx.fillStyle = t.banner; ctx.fillRect(64, 724, 675, 95);
-    block(ctx, promo.banner, 88, 736, 625, 70, 41, "#FFFFFF", 800);
+    ctx.fillStyle = t.title; ctx.fillRect(64, 674, 952, 93);
+    ctx.fillStyle = t.ribbon; ctx.fillRect(64, 674, 10, 93);
+    block(ctx, promo.banner, 95, 687, 880, 65, 44, "#FFFFFF", 800);
   }
-  // Only the prepared original-photo pixels are placed here. No tint or image filters.
-  if (image) drawFit(ctx, image, 60, 855, 680, 435);
-  ctx.fillStyle = t.ribbon; ctx.fillRect(756, 1080, 260, 170);
-  block(ctx, "M.R.P. ₹", 780, 1095, 210, 38, 28, "#FFFFFF");
-  block(ctx, mrpText(p.mrp), 780, 1140, 210, 75, 45, "#FFFFFF", 800);
-  block(ctx, `Pack: ${p.packSize}`, 68, 1300, 950, 48, 31, t.title, 700);
+  // The source product is prominent and remains unfiltered: no recolouring or generated artwork.
+  if (image) drawFit(ctx, image, 50, 797, 590, 696);
+  ctx.fillStyle = t.ribbon; ctx.fillRect(674, 1290, 342, 92);
+  block(ctx, `M.R.P. ${mrpText(p.mrp)}`, 695, 1305, 300, 62, 46, "#FFFFFF", 800);
+  ctx.fillStyle = "#FFFFFF"; ctx.fillRect(674, 1382, 342, 85);
+  block(ctx, p.packSize, 695, 1393, 300, 58, 34, t.title, 700);
+  ctx.strokeStyle = t.ribbon; ctx.lineWidth = 2; ctx.strokeRect(674, 1382, 342, 85);
   const uses = [...promo.indications, ...(promo.usesCheckedFor === promo.suggestedUses?.join(" | ") ? promo.suggestedUses ?? [] : [])];
-  const sections = promo.sections.slice(0, 3);
-  const points = sections.map(s => `${s.title}: ${s.bullets.join(" · ")}`);
+  const points = promo.sections.slice(0, 3).map(s => `${s.title}: ${s.bullets.join(" · ")}`);
   const content = [...points, ...(uses.length ? [`Uses: ${[...new Set(uses)].join(" · ")}`] : [])];
-  ctx.fillStyle = t.wash; ctx.fillRect(64, 1372, 952, 286);
-  block(ctx, content.join("  •  "), 88, 1388, 904, 232, 32, "#253342", 500);
-  block(ctx, promo.tagline, 68, 1677, 944, 50, 36, t.title, 700);
-  ctx.fillStyle = t.title; ctx.fillRect(0, 1750, 1080, 170);
-  if (logo) drawFit(ctx, logo, 64, 1770, 72, 72);
-  block(ctx, c.name, logo ? 158 : 64, 1770, logo ? 850 : 950, 48, 38, "#FFFFFF", 800);
-  block(ctx, [c.phone, c.email].filter(Boolean).join(" · "), 64, 1820, 950, 35, 24, "#FFFFFF", 500);
-  block(ctx, TRADE_LINE, 64, 1863, 950, 30, 20, "#FFFFFF", 500);
-  if (promo.photoIsAi) block(ctx, "AI-generated supporting visual", 710, 1708, 300, 24, 17, "#586575", 500);
+  ctx.fillStyle = t.title; ctx.fillRect(64, 1530, 44, 4);
+  block(ctx, "FORMULATION OVERVIEW", 126, 1517, 830, 44, 28, t.title, 700);
+  block(ctx, content.join("  •  "), 64, 1580, 952, 142, 36, "#253342", 500);
+  block(ctx, promo.tagline, 64, 1730, 952, 48, 31, t.title, 700);
+  ctx.fillStyle = t.title; ctx.fillRect(0, 1810, 1080, 110);
+  if (logo) drawFit(ctx, logo, 64, 1826, 60, 60);
+  block(ctx, c.name, logo ? 145 : 64, 1824, logo ? 870 : 950, 46, 35, "#FFFFFF", 800);
+  const contact = [c.phone, c.email].filter(Boolean).join(" · ");
+  block(ctx, contact || TRADE_LINE, 64, 1871, 950, 28, 19, "#FFFFFF", 500);
+  if (promo.photoIsAi) block(ctx, "AI-generated supporting visual", 710, 1780, 306, 23, 17, "#586575", 500);
 }
