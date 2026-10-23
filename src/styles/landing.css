@@ -1,4 +1,14 @@
 /* Public editorial studio; shares tokens with the working application. */
+/* Public pages have a stable art direction across system light/dark preferences. */
+body:has(.landing) { --bg: #f6f4ee; --surface: #fffdf8; --sunken: #eeece4; --ink: #18352d; --muted: #586b61; --line: #d7ded2; --accent: #0e5e4e; --accent-hover: #0b4c3f; --accent-ink: #fff; --accent-soft: #e0ece4; color-scheme: light; background: var(--bg); color: var(--ink); }
+.mode-switch { display: inline-flex; align-items: center; gap: 3px; padding: 4px; background: var(--sunken); border: 1px solid var(--line); border-radius: 10px; flex-shrink: 0; }
+.mode-switch a { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 36px; padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--muted); text-decoration: none; border-radius: 7px; }
+.mode-switch a[aria-current=page] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px #173c2910; }
+.mode-switch a:hover { color: var(--accent); }
+.mode-switch a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app-bar .mode-switch { margin-right: 10px; }
+@media (max-width: 720px) { .mode-switch a { min-height: 40px; padding-inline: 9px; font-size: 11px; } .app-bar .mode-switch { margin-right: 0; } .app-bar .brand { min-width: 0; } .app-bar .logo-word small { display: none; } .landing-bar .tabs { display: none; } .landing-bar .logo-word small { display: none; } }
+@media (max-width: 360px) { .mode-switch a { padding-inline: 7px; } .app-bar .logo-word, .landing-bar .logo-word { font-size: 16px; } .app-bar .brand, .landing-bar .brand { gap: 5px; } }
 .landing { padding-bottom: 0; }
 .landing-bar .wrap { min-height: 84px; }
 .landing-bar .tabs { align-items: center; gap: 12px; }

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { demoMode } from "@/lib/config";
 import { signOut } from "@/lib/data/repo";
 import { Logo } from "./Logo";
+import { ModeSwitch } from "./ModeSwitch";
 
 type NavItem = { href: string; label: string; icon: ReactNode; primary?: boolean };
 
@@ -46,6 +47,7 @@ export function AppBar() {
       <header className="bar app-bar">
         <div className="wrap">
           <Brand />
+          <ModeSwitch mode="app" />
           <nav className="tabs tabs-desktop" aria-label="Sections">
             {NAV.map((t) => (
               <Link key={t.href} className={`tab${t.primary ? " primary" : ""}`} href={t.href} aria-current={isCurrent(t.href) ? "page" : undefined}>

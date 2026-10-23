@@ -230,9 +230,9 @@ describe("copy contracts and the mock", () => {
 
 describe("photo prompt", () => {
   it("picks a calm scene from the uses, then the category", () => {
-    expect(photoScene({ uses: "Pregnancy, Lactation", category: "" })).toContain("pregnant Indian woman relaxing");
+    expect(photoScene({ uses: "Pregnancy, Lactation", category: "" })).toContain("pregnant Indian woman standing");
     expect(photoScene({ uses: "Allergic rhinitis", category: "" })).toContain("tissue near his nose");
-    expect(photoScene({ uses: "Fever, body ache", category: "" })).toContain("hand on her forehead");
+    expect(photoScene({ uses: "Fever, body ache", category: "" })).toContain("hand lightly resting on the forehead");
     expect(photoScene({ uses: "", category: "Cardiac" })).toContain("morning walk");
     expect(photoScene({ uses: "", category: "Other" })).toBe("an adult Indian person relaxing calmly at home");
   });
@@ -240,7 +240,7 @@ describe("photo prompt", () => {
   it("matches whole words: acid in a vitamin name isn't acidity, and uti isn't inside nutrition", () => {
     const meal = "dining table after a light meal";
     const walk = "walking outdoors in soft morning light";
-    const rest = "glass of water beside him";
+    const rest = "glass of water on a table";
     expect(photoScene({ uses: "Folic acid deficiency", category: "" })).toContain(walk);
     expect(photoScene({ uses: "Ascorbic acid supplementation", category: "" })).toContain(walk);
     expect(photoScene({ uses: "Folic acid", category: "" })).toBe("an adult Indian person relaxing calmly at home");
@@ -256,7 +256,7 @@ describe("photo prompt", () => {
 
   it("checks vitamins before infections", () => {
     expect(photoScene({ uses: "Vitamin deficiency during infections", category: "" })).toContain("walking outdoors");
-    expect(photoScene({ uses: "Bacterial infections", category: "" })).toContain("glass of water beside him");
+    expect(photoScene({ uses: "Bacterial infections", category: "" })).toContain("glass of water on a table");
   });
 
   it("states the layout and every exclusion, and never copies the user's text", () => {
@@ -391,3 +391,4 @@ describe("promo client", () => {
     expect(await requestPhoto(PHOTO_INPUT, down)).toEqual({ ok: false, error: "network", status: 0 });
   });
 });
+

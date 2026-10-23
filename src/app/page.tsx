@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HeroCircular } from "@/components/landing/HeroCircular";
 import { Logo } from "@/components/Logo";
+import { ModeSwitch } from "@/components/ModeSwitch";
 import { demoMode } from "@/lib/config";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
@@ -54,10 +55,8 @@ export default function HomePage() {
           <nav className="tabs" aria-label="Home page">
             <a className="tab" href="#how">The workflow</a>
             <a className="tab" href="#faq">Questions</a>
-            <Link className="tab primary" href="/catalog">
-              Open studio <span aria-hidden="true">↗</span>
-            </Link>
           </nav>
+          <ModeSwitch mode="website" />
         </div>
       </header>
 
@@ -67,9 +66,9 @@ export default function HomePage() {
             <p className="eyebrow">
               <span className="eyebrow-rule" /> A product studio for the pharma trade
             </p>
-            <h1 id="hero-title">A better way to<br />present <em>your range.</em></h1>
+            <h1 id="hero-title">From your pack.<br />To their <em>next conversation.</em></h1>
             <p className="lede">
-              Give every medicine pack a consistent company identity. Turn carton photos into clear circulars and a catalog you can actually find things in.
+              Your original packaging. Clear product details. A considered visual. Create a company-branded WhatsApp Story from the photos you already have.
             </p>
             <div className="row hero-actions">
               <Link className="btn primary lg" href="/catalog">
