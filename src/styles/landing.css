@@ -1,6 +1,6 @@
 /* Public editorial studio; shares tokens with the working application. */
 /* Public pages have a stable art direction across system light/dark preferences. */
-body:has(.landing) { --bg: #f6f4ee; --surface: #fffdf8; --sunken: #eeece4; --ink: #18352d; --muted: #586b61; --line: #d7ded2; --accent: #0e5e4e; --accent-hover: #0b4c3f; --accent-ink: #fff; --accent-soft: #e0ece4; color-scheme: light; background: var(--bg); color: var(--ink); }
+body:has(.landing:not([style*="display: none"])) { --bg: #f6f4ee; --surface: #fffdf8; --sunken: #eeece4; --ink: #18352d; --muted: #586b61; --line: #d7ded2; --accent: #0e5e4e; --accent-hover: #0b4c3f; --accent-ink: #fff; --accent-soft: #e0ece4; color-scheme: light; background: var(--bg); color: var(--ink); }
 .mode-switch { display: inline-flex; align-items: center; gap: 3px; padding: 4px; background: var(--sunken); border: 1px solid var(--line); border-radius: 10px; flex-shrink: 0; }
 .mode-switch a { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 36px; padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--muted); text-decoration: none; border-radius: 7px; }
 .mode-switch a[aria-current=page] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px #173c2910; }
@@ -105,3 +105,4 @@ body:has(.landing) { --bg: #f6f4ee; --surface: #fffdf8; --sunken: #eeece4; --ink
   .landing .hero h1 { line-height: 1.08; }
   .landing .section-intro > p:last-child, .landing .steps-list p, .landing .feature-list p, .landing .faq p { font-size: 15px; }
 }
+
