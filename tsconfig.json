@@ -56,7 +56,9 @@
     ".next-verify-webpack-progress/types/**/*.ts",
     ".next-verify-webpack-progress/dev/types/**/*.ts",
     ".next-verify-modes/types/**/*.ts",
-    ".next-verify-modes/dev/types/**/*.ts"
+    ".next-verify-modes/dev/types/**/*.ts",
+    ".next-verify-story-final/types/**/*.ts",
+    ".next-verify-story-final/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

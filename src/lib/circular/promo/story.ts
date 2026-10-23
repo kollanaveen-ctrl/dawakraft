@@ -1,6 +1,6 @@
 import { TRADE_LINE } from "../../constants";
 import { mrpText } from "../../format";
-import { drawFit, font, imageSize, type Ctx } from "../draw";
+import { drawFit, font, type Ctx } from "../draw";
 import type { PromoInput } from "./render";
 
 /** Word-wrap without dropping ingredient names or strengths. */
@@ -25,42 +25,32 @@ function block(ctx: Ctx, text: string, x: number, y: number, w: number, h: numbe
     size--;
   } while (true);
   ctx.fillStyle = colour;
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
   wrapped.forEach((line, i) => ctx.fillText(line, x, y + size + i * size * 1.22));
+  ctx.restore();
 }
 
 /** 9:16 WhatsApp Story, with space above and below the essential content for app controls. */
 export function drawStoryPromo(ctx: Ctx, { product: p, company: c, promo, theme: t, image, photo, logo }: PromoInput) {
   ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 1080, 1920);
-  if (photo) {
-    const [iw, ih] = imageSize(photo), w = 800, h = 1420;
-    const scale = Math.max(w / iw, h / ih);
-    ctx.save();
-    if (promo.layout === "portrait") { ctx.beginPath(); ctx.ellipse(830, 790, 400, 700, 0, 0, Math.PI * 2); ctx.clip(); }
-    ctx.drawImage(photo, Math.max(0, iw - w / scale), Math.max(0, (ih - h / scale) / 2), w / scale, h / scale, 280, 70, w, h);
-    ctx.restore();
-    const fade = ctx.createLinearGradient(180, 0, 830, 0);
-    fade.addColorStop(0, "#FFFFFF"); fade.addColorStop(.4, "#FFFFFFE8"); fade.addColorStop(1, "#FFFFFF00");
-    ctx.fillStyle = fade; ctx.fillRect(0, 0, 1080, 1490);
-    const bottom = ctx.createLinearGradient(0, 1280, 0, 1520);
-    bottom.addColorStop(0, "#FFFFFF00"); bottom.addColorStop(1, "#FFFFFF");
-    ctx.fillStyle = bottom; ctx.fillRect(0, 1280, 1080, 250);
-  }
+  // Reserved image zones: neither the banner nor the price can cover the person or pack.
+  // Contain the complete supporting image so faces/hands are never cropped by the layout.
+  if (photo) drawFit(ctx, photo, 604, 470, 412, 917);
   ctx.fillStyle = t.ribbon; ctx.fillRect(64, 126, 76, 7);
   block(ctx, p.name, 60, 155, 955, 155, 112, t.title, 800);
-  block(ctx, p.composition, 66, 325, 670, 120, 39, "#253342");
-  block(ctx, promo.headline, 66, 470, 610, 172, 65, t.title, 800);
+  block(ctx, p.composition, 66, 325, 950, 120, 39, "#253342");
+  block(ctx, promo.headline, 66, 470, 506, 172, 65, t.title, 800);
   if (promo.banner) {
-    ctx.fillStyle = t.title; ctx.fillRect(64, 674, 952, 93);
+    ctx.fillStyle = t.title; ctx.fillRect(64, 674, 508, 93);
     ctx.fillStyle = t.ribbon; ctx.fillRect(64, 674, 10, 93);
-    block(ctx, promo.banner, 95, 687, 880, 65, 44, "#FFFFFF", 800);
+    block(ctx, promo.banner, 87, 684, 462, 73, 38, "#FFFFFF", 800);
   }
   // The source product is prominent and remains unfiltered: no recolouring or generated artwork.
-  if (image) drawFit(ctx, image, 50, 797, 590, 696);
-  ctx.fillStyle = t.ribbon; ctx.fillRect(674, 1290, 342, 92);
-  block(ctx, `M.R.P. ${mrpText(p.mrp)}`, 695, 1305, 300, 62, 46, "#FFFFFF", 800);
-  ctx.fillStyle = "#FFFFFF"; ctx.fillRect(674, 1382, 342, 85);
-  block(ctx, p.packSize, 695, 1393, 300, 58, 34, t.title, 700);
-  ctx.strokeStyle = t.ribbon; ctx.lineWidth = 2; ctx.strokeRect(674, 1382, 342, 85);
+  if (image) drawFit(ctx, image, 64, 797, 508, 590);
+  ctx.fillStyle = t.ribbon; ctx.fillRect(64, 1410, 450, 88);
+  block(ctx, `M.R.P. ${mrpText(p.mrp)}`, 86, 1422, 406, 62, 42, "#FFFFFF", 800);
+  ctx.fillStyle = "#F3F5F7"; ctx.fillRect(514, 1410, 502, 88);
+  block(ctx, `Pack: ${p.packSize}`, 536, 1422, 458, 62, 35, t.title, 700);
   const uses = [...promo.indications, ...(promo.usesCheckedFor === promo.suggestedUses?.join(" | ") ? promo.suggestedUses ?? [] : [])];
   const points = promo.sections.slice(0, 3).map(s => `${s.title}: ${s.bullets.join(" · ")}`);
   const content = [...points, ...(uses.length ? [`Uses: ${[...new Set(uses)].join(" · ")}`] : [])];
