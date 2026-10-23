@@ -1,5 +1,5 @@
-import { Wizard } from "@/components/wizard/Wizard";
+import { FlyerStudio } from "@/components/FlyerStudio";
 
 export default function NewProductPage() {
-  return <Wizard product={null} />;
+  return <FlyerStudio />;
 }

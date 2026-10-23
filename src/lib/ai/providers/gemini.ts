@@ -8,6 +8,7 @@ import { CATEGORIES } from "../../constants";
 import { boxReadPrompt } from "../box-read";
 import { copyPrompt, normalizeCopy } from "../promo-copy";
 import { PHOTO_ASPECT_RATIO, photoPrompt } from "../promo-photo";
+import { ProductShotRejected, productShotPrompt, shotIdentityMatches } from "../product-shot";
 import {
   AiError,
   BoxReadingSchema,
@@ -25,6 +26,7 @@ import {
   type PromoPhotoOutput,
   type WriteCopyInput,
   type WriteCopyOutput,
+  type ProductShotInput,
 } from "../types";
 
 const PROVIDER = "gemini";
@@ -345,7 +347,7 @@ export function createGeminiProvider(deps: Deps = {}): AiProvider {
         provider: PROVIDER_ROUTING,
         max_tokens: PHOTO_MAX_TOKENS,
         modalities: ["image", "text"],
-        image_config: { aspect_ratio: PHOTO_ASPECT_RATIO },
+        image_config: { aspect_ratio: input.format === "story" ? "9:16" : PHOTO_ASPECT_RATIO },
         messages: [{ role: "user", content: photoPrompt(input) }],
       },
       d,
@@ -353,7 +355,28 @@ export function createGeminiProvider(deps: Deps = {}): AiProvider {
     return { data: parseImage(response), meta: metaFor("makePhoto", model, started, response) };
   }
 
-  return { id: PROVIDER, paid: true, readBox, categorize, writeCopy, makePhoto };
+  async function makeProductShot(input: ProductShotInput): Promise<PromoPhotoOutput> {
+    const started = Date.now();
+    const d = resolve();
+    const model = geminiModels(d.env).image;
+    const response = await postChat("makeProductShot", {
+      model, provider: PROVIDER_ROUTING, max_tokens: PHOTO_MAX_TOKENS,
+      modalities: ["image", "text"], image_config: { aspect_ratio: "4:3" },
+      messages: [{ role: "user", content: [
+        ...input.images.map(img => ({ type: "image_url", image_url: { url: `data:${img.mediaType};base64,${img.data}` } })),
+        { type: "text", text: productShotPrompt(input) },
+      ] }],
+    }, d);
+    const data = parseImage(response);
+    // Never approve a changed brand/strength merely because the photograph looks attractive.
+    const check = await readBox({ images: [{ ...data, role: "front" }] });
+    if (!shotIdentityMatches(input, { name: check.data.name.value, composition: check.data.composition.value })) {
+      throw new ProductShotRejected(data, check.data.name.value);
+    }
+    return { data, meta: metaFor("makeProductShot", model, started, response) };
+  }
+
+  return { id: PROVIDER, paid: true, readBox, categorize, writeCopy, makePhoto, makeProductShot };
 }
 
 export const geminiProvider = createGeminiProvider();

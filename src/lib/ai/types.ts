@@ -44,6 +44,16 @@ export const BoxReadRequestSchema = z.object({
 });
 export type BoxReadInput = z.infer<typeof BoxReadRequestSchema>;
 
+/** Product retouching uses the actual photos, not a text-only invented carton. */
+export const ProductShotRequestSchema = z.object({
+  images: z.array(BoxImageSchema).min(1).max(MAX_AI_IMAGES),
+  name: z.string().trim().min(1).max(200),
+  composition: z.string().max(500),
+  packSize: z.string().max(120),
+  form: z.string().max(60),
+});
+export type ProductShotInput = z.infer<typeof ProductShotRequestSchema>;
+
 export const CategoryRequestSchema = z.object({
   i: z.number().int().min(0).max(10_000),
   name: z.string().min(1).max(200),
@@ -57,6 +67,8 @@ export const CategorizeRequestSchema = z.object({
 
 /** POST /api/write-copy: the product facts the copywriter may use (and nothing else). */
 export const WriteCopyRequestSchema = z.object({
+  inferUses: z.boolean().optional(),
+  format: z.enum(["story", "landscape"]).optional(),
   name: z.string().trim().min(1).max(120),
   composition: z.string().max(500),
   form: z.string().max(40),
@@ -68,6 +80,10 @@ export type WriteCopyInput = z.infer<typeof WriteCopyRequestSchema>;
 
 /** POST /api/promo-photo: only picks the scene; none of this text is drawn in the picture. */
 export const PromoPhotoRequestSchema = z.object({
+  composition: z.string().max(500).optional(),
+  visualBrief: z.string().max(400).optional(),
+  format: z.enum(["story", "landscape"]).optional(),
+  variant: z.number().int().min(0).max(20).optional(),
   name: z.string().max(120),
   uses: z.string().max(200),
   category: z.string().max(60),
@@ -90,6 +106,16 @@ const evidenceField = <T extends z.ZodType>(value: T) =>
   });
 
 export const BoxReadingSchema = z.object({
+  /** Zero-based photo mapping for a batch uploaded without labels. Optional for older providers. */
+  photoViews: z.array(z.object({
+    index: z.number().int().nonnegative(),
+    view: z.enum(["front", "side", "top", "back", "pack", "other"]),
+    kind: z.enum(["box", "strip", "bottle", "tube", "other"]),
+    confidence: z.enum(["high", "low"]),
+    usable: z.boolean(),
+    rotation: z.enum(["0", "90", "180", "270"]),
+  })).optional(),
+  mixedProducts: z.boolean().optional(),
   name: evidenceField(z.string()),
   composition: evidenceField(z.string()),
   form: evidenceField(z.enum(FORMS)),
@@ -130,6 +156,8 @@ export const COPY_LIMITS = {
  * maxLength varies); the server trims the draft with normalizeCopy() into PromoCopySchema.
  */
 export const PromoCopyDraftSchema = z.object({
+  suggestedUses: z.array(z.string()).optional(),
+  visualBrief: z.string().optional(),
   headline: z.string(),
   banner: z.string(),
   tagline: z.string(),
@@ -140,6 +168,8 @@ export type PromoCopyDraft = z.infer<typeof PromoCopyDraftSchema>;
 
 /** The copy the route returns, every limit enforced. Maps onto Promo (promo.ts) field for field. */
 export const PromoCopySchema = z.object({
+  suggestedUses: z.array(z.string().max(90)).max(3).optional(),
+  visualBrief: z.string().max(400).optional(),
   headline: z.string().max(COPY_LIMITS.headline),
   banner: z.string().max(COPY_LIMITS.banner),
   tagline: z.string().max(COPY_LIMITS.tagline),
@@ -241,6 +271,7 @@ export interface Copywriter {
 export interface PhotoMaker {
   /** A landscape 4:3 lifestyle photo, subject on the right. Optional: absent means photo_unavailable. */
   makePhoto?(input: PromoPhotoInput): Promise<PromoPhotoOutput>;
+  makeProductShot?(input: ProductShotInput): Promise<PromoPhotoOutput>;
 }
 
 /** A provider reads boxes, sorts categories and writes copy; some also make photos. Paid providers need sign-in and rate limits. */

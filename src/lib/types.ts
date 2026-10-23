@@ -1,4 +1,4 @@
-import type { ImageRole, TemplateKey } from "./constants";
+import type { AiFieldKey, ImageRole, TemplateKey } from "./constants";
 import type { Promo } from "./promo";
 
 export type Product = {
@@ -59,4 +59,4 @@ export type AiField = {
   source?: ImageRole | null;
   quote?: string | null;
 };
-export type AiReadResult = Partial<Record<string, AiField>>;
+export type AiReadResult = Partial<Record<AiFieldKey | "strengthOnFront", AiField>>;

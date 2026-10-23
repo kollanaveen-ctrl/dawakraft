@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useData } from "@/components/DataProvider";
 import { Wizard } from "@/components/wizard/Wizard";
+import { FlyerStudio } from "@/components/FlyerStudio";
 
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,5 +21,5 @@ export default function EditProductPage() {
       </div>
     );
   }
-  return <Wizard key={product.id} product={product} />;
+  return product.promo.layout ? <FlyerStudio key={product.id} product={product} /> : <Wizard key={product.id} product={product} />;
 }

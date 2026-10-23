@@ -21,6 +21,13 @@ export const PROMO_LIMITS = {
 export type PromoSection = { title: string; bullets: string[] };
 
 export type Promo = {
+  /** New studio compositions; absent keeps existing circulars unchanged. */
+  layout?: "editorial" | "portrait";
+  format?: "story" | "landscape";
+  /** AI-suggested uses are separate from the supplied approved indications. */
+  suggestedUses?: string[];
+  usesCheckedFor?: string;
+  visualBrief?: string;
   /** The big line at the top right, e.g. "Women of today are ACTIVE in all spheres of". */
   headline: string;
   /** Words shown in the coloured band under the headline, e.g. "LIFE EVEN IN PREGNANCY". */
@@ -77,6 +84,11 @@ export function parsePromo(v: unknown): Promo {
         .slice(0, PROMO_LIMITS.sections)
     : [];
   return {
+    ...(o.layout === "editorial" || o.layout === "portrait" ? { layout: o.layout } : {}),
+    ...(o.format === "story" || o.format === "landscape" ? { format: o.format } : {}),
+    ...(Array.isArray(o.suggestedUses) ? { suggestedUses: list(o.suggestedUses, 3, 90) } : {}),
+    ...(typeof o.usesCheckedFor === "string" ? { usesCheckedFor: str(o.usesCheckedFor, 400) } : {}),
+    ...(typeof o.visualBrief === "string" ? { visualBrief: str(o.visualBrief, 400) } : {}),
     headline: str(o.headline, PROMO_LIMITS.headline),
     banner: str(o.banner, PROMO_LIMITS.banner),
     tagline: str(o.tagline, PROMO_LIMITS.tagline),
@@ -93,7 +105,7 @@ export function parsePromo(v: unknown): Promo {
 
 /** Every word the circular prints from the promo content, for the claim checks. */
 export function promoText(p: Promo): string {
-  return [p.headline, p.banner, p.tagline, ...p.sections.flatMap((s) => [s.title, ...s.bullets]), ...p.indications].join(" \n ");
+  return [p.headline, p.banner, p.tagline, ...p.sections.flatMap((s) => [s.title, ...s.bullets]), ...p.indications, ...(p.suggestedUses ?? [])].join(" \n ");
 }
 
 /** Strong claims: allowed only after the person confirms them (they need evidence and approval). */

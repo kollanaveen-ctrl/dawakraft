@@ -114,6 +114,11 @@ PRODUCT FACTS (JSON):
 ${JSON.stringify(facts)}
 ${ingredients.length ? `Active ingredients found in the composition: ${ingredients.join("; ")}.` : "No active ingredient could be read from the composition."}
 
+${input.inferUses ? `COMBINATION ANALYSIS:
+Consider all named ingredients together, their strengths and dosage form. Explain established pharmacological roles in the sections. Do not guess unidentified ingredients or disease uses from broad terms like multivitamins alone.
+Return suggestedUses: up to 3 short, tentative combination uses for leaflet review, separate from approved indications. Return [] when the composition is too vague. These are draft suggestions, never approved indications.
+Return visualBrief: a specific photographic or tasteful anatomical concept linked to this combination and its supplied uses. Prefer a relevant activity, symptom context or body-system illustration. Avoid a generic woman thinking on a sofa. No medicine packaging, lettering or promise of treatment outcomes.` : ""}
+${input.format === "story" ? "STORY COPY: keep each ingredient to ONE bullet, at most 70 characters. At most 3 short suggested uses. Keep all supporting copy together below 500 characters for phone readability." : ""}
 Write:
 - headline: a warm, human line about the patient's everyday life, not a textbook phrase, at most ${COPY_LIMITS.headline} characters. The headline and the banner read together as one sentence, e.g. headline "Women of today are active in all spheres of" + banner "LIFE, EVEN IN PREGNANCY"; headline "When pain, fever & inflammation" + banner "NEED CARE TOGETHER"; headline "Everyday comfort during" + banner "COLD SORE FLARE-UPS".
 - banner: 2 to 4 words that finish the headline, uppercase-friendly, at most ${COPY_LIMITS.banner} characters.
@@ -159,7 +164,7 @@ export function allowedIndications(fromModel: readonly string[], uses: string): 
  * The model's draft trimmed to PromoCopy: limits applied, empty sections dropped, indications
  * restricted to `uses`. Null when no usable section is left (the caller treats that as invalid_json).
  */
-export function normalizeCopy(draft: PromoCopyDraft, input: Pick<WriteCopyInput, "uses">): PromoCopy | null {
+export function normalizeCopy(draft: PromoCopyDraft, input: Pick<WriteCopyInput, "uses"> & Partial<Pick<WriteCopyInput, "inferUses">>): PromoCopy | null {
   const sections = draft.sections
     .map((s) => ({
       title: clip(s.title, COPY_LIMITS.sectionTitle),
@@ -174,6 +179,8 @@ export function normalizeCopy(draft: PromoCopyDraft, input: Pick<WriteCopyInput,
     tagline: clip(draft.tagline, COPY_LIMITS.tagline),
     sections,
     indications: allowedIndications(draft.indications, input.uses),
+    ...(input.inferUses && draft.suggestedUses ? { suggestedUses: draft.suggestedUses.map(s => clip(s, 90)).filter(Boolean).slice(0, 3) } : {}),
+    ...(input.inferUses && draft.visualBrief ? { visualBrief: clip(draft.visualBrief, 400) } : {}),
   };
 }
 

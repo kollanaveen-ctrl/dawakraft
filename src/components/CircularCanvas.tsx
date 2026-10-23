@@ -33,8 +33,8 @@ export function CircularCanvas({ product, company, template, image, logo, promo,
     return () => {
       live = false;
     };
-  }, [product, company, template, image, logo, promo, photo]);
-  const size = circularSize(template);
+  }, [product, company, template, image, logo, promo, photo, width]);
+  const size = circularSize(template, promo);
 
   return (
     <canvas

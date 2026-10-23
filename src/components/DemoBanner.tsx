@@ -9,9 +9,7 @@ export function DemoBanner() {
     <div className="notice warn" role="note">
       <span className="dot warn" />
       <p>
-        <b>Demo mode.</b> The Cloudflare database isn&apos;t switched on yet, so products are saved only in this browser and there is no sign-in.
-        To go live, fill in the Cloudflare settings in <span className="mono" style={{ textTransform: "none" }}>app/.env.local</span> and restart
-        (README, &ldquo;Turning on real accounts&rdquo;).
+        <b>Local preview.</b> Your products and photos are saved in this browser. They won&apos;t appear on another device.
       </p>
     </div>
   );

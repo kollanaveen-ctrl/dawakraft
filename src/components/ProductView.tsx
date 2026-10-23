@@ -7,6 +7,7 @@ import { effectiveHighlight, isNewLaunch } from "@/lib/segments";
 import type { TemplateKey } from "@/lib/constants";
 import * as repo from "@/lib/data/repo";
 import { mrpText, shareText, slug } from "@/lib/format";
+import { flyerIssues } from "@/lib/studio";
 import { claimsConfirmed, promoClaims } from "@/lib/promo";
 import { copyText, downloadBlob, isIOS, shareImage, whatsappLink } from "@/lib/share";
 import type { Product } from "@/lib/types";
@@ -89,8 +90,14 @@ export function ProductView({ id }: { id: string }) {
   const claims = promoClaims(p.promo);
   const promoBlock = !isPromo
     ? ""
+    : flyerIssues(p.promo).length
+      ? flyerIssues(p.promo)[0]
     : claims.banned.length
       ? `Remove claim words from the promo text first: ${claims.banned.join(", ")}.`
+      : p.promo.layout && !p.promo.photoPath
+        ? "Complete the flyer photo in the studio before downloading."
+      : p.promo.layout && (!photo || !image)
+        ? "The flyer images are still loading. If they do not appear, reopen the studio and replace the missing image."
       : !claimsConfirmed(p.promo)
         ? `Confirm the strong claims (${claims.strong.join(", ")}) in the promo editor first.`
         : "";
@@ -164,7 +171,7 @@ export function ProductView({ id }: { id: string }) {
               logo={logo}
               promo={p.promo}
               photo={photo}
-              width={tpl === "promo" ? 1600 : undefined}
+              width={tpl === "promo" ? p.promo.format === "story" ? 1080 : 1600 : undefined}
               label="Product circular"
             />
           )}

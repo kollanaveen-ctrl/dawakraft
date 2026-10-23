@@ -9,6 +9,7 @@ import { composeProductShot } from "./companion";
 import { detectCornersOnCanvas } from "./corners";
 import { cleanPhoto, cutout } from "./cutout";
 import { fileToImage } from "./encode";
+import { UNSUPPORTED_PHOTO_MESSAGE } from "./photo-policy";
 import { quadShare } from "./perspective";
 import { loadFaceSource, straightenFace } from "./straighten";
 
@@ -102,6 +103,7 @@ export type ShotOptions = {
   shadow?: boolean;
   /** Without an end or top photo, stretch the front's edges to fill them in. */
   synthesize?: boolean;
+  preserveArtwork?: boolean;
 };
 
 /**
@@ -112,7 +114,7 @@ export function composePackShot(
   front: HTMLCanvasElement,
   side: HTMLCanvasElement | null,
   top: HTMLCanvasElement | null,
-  { shadow = true, synthesize = false }: ShotOptions = {},
+  { shadow = true, synthesize = false, preserveArtwork = false }: ShotOptions = {},
 ): HTMLCanvasElement {
   const g = boxGeometry(front, side, top, synthesize);
   if (!g) return front;
@@ -134,13 +136,14 @@ export function composePackShot(
     ctx.restore();
   }
 
-  const endPanel = side ?? edgePanel(front, "left");
-  const topPanel = top ?? edgePanel(front, "top");
+  const endPanel = side ?? (synthesize ? edgePanel(front, "left") : null);
+  const topPanel = top ?? (synthesize ? edgePanel(front, "top") : null);
   // Front, left end (in shade), top (catching the light).
   face(ctx, [[dx, dy], [dx + w, dy], [dx + w, dy + h], [dx, dy + h]], front, "#FFFFFF", "rgba(0,0,0,0)");
-  face(ctx, [[0, 0], [dx, dy], [dx, dy + h], [0, h]], endPanel, "#C9D3D4", side ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.2)");
-  face(ctx, [[0, 0], [w, 0], [w + dx, dy], [dx, dy]], topPanel, "#E4EAEA", "rgba(255,255,255,0.12)");
+  face(ctx, [[0, 0], [dx, dy], [dx, dy + h], [0, h]], endPanel, "#C9D3D4", preserveArtwork ? "transparent" : side ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.2)");
+  face(ctx, [[0, 0], [w, 0], [w + dx, dy], [dx, dy]], topPanel, "#E4EAEA", preserveArtwork ? "transparent" : "rgba(255,255,255,0.12)");
 
+  if (preserveArtwork) return out;
   // Crisp edges where the faces meet, and a highlight on the front corner.
   ctx.strokeStyle = "rgba(15,31,36,0.16)";
   ctx.lineWidth = Math.max(1, Math.round(w / 320));
@@ -160,6 +163,8 @@ export function composePackShot(
 }
 
 export type PackInput = {
+  /** Fail rather than approximate missing artwork or use a cluttered raw photo. */
+  strict?: boolean;
   front: File | HTMLImageElement;
   side: File | null;
   top: File | null;
@@ -189,10 +194,10 @@ export type PackResult = {
 };
 
 /** The box from straightened faces: in 3D when asked for (filling in a missing end), else the flat front. */
-export function packFromFaces(faces: FaceCanvases, threeD: boolean, shadow = true): { canvas: HTMLCanvasElement; is3D: boolean } | null {
+export function packFromFaces(faces: FaceCanvases, threeD: boolean, shadow = true, synthesize = true): { canvas: HTMLCanvasElement; is3D: boolean } | null {
   if (!faces.front) return null;
   if (!threeD) return { canvas: faces.front, is3D: false };
-  const canvas = composePackShot(faces.front, faces.side ?? null, faces.top ?? null, { shadow, synthesize: true });
+  const canvas = composePackShot(faces.front, faces.side ?? null, faces.top ?? null, { shadow, synthesize, preserveArtwork: !synthesize });
   return { canvas, is3D: canvas !== faces.front };
 }
 
@@ -233,7 +238,8 @@ async function buildBoxPack(input: PackInput, front: File, shadow: boolean): Pro
   const faces: FaceCanvases = Object.fromEntries(present.filter((f) => f.found).map((f) => [f.face, f.canvas]));
   const shapes: FaceCanvases = Object.fromEntries(present.map((f) => [f.face, f.canvas]));
   const unfound = present.filter((f) => !f.found).map((f) => f.face);
-  const pack = packFromFaces(shapes, input.threeD, shadow);
+  if (input.strict && (unfound.length || (input.threeD && (!shapes.side || !shapes.top)))) throw new Error(UNSUPPORTED_PHOTO_MESSAGE);
+  const pack = packFromFaces(shapes, input.threeD, shadow, !input.strict);
   if (!pack) throw new Error("No front photo");
   return { ...pack, ok: true, faces, unfound };
 }
@@ -248,6 +254,7 @@ async function buildCutoutPack(input: PackInput, shadow: boolean): Promise<PackR
   // A saved photo (editing without new photos) is already cleaned, so only rotate it.
   const front = await prep(input.front, input.rots.front, input.removeBg && !(input.front instanceof HTMLImageElement));
   if (!front) throw new Error("No front photo");
+  if (input.strict && !front.ok) throw new Error(UNSUPPORTED_PHOTO_MESSAGE);
   if (!input.threeD || (!input.side && !input.top)) return { canvas: front.canvas, ok: front.ok, is3D: false };
   const [side, top] = await Promise.all([
     prep(input.side, input.rots.side, input.removeBg),
@@ -269,7 +276,10 @@ export async function buildPackImage(input: PackInput): Promise<PackResult> {
   if (!withPack || !input.pack) return base;
   const img = await fileToImage(input.pack);
   const cut = cleanPhoto(img, input.rots.pack, true, input.tol);
-  if (!cut.ok) return { ...base, packOk: false };
+  if (!cut.ok) {
+    if (input.strict) throw new Error(UNSUPPORTED_PHOTO_MESSAGE);
+    return { ...base, packOk: false };
+  }
   const canvas = composeProductShot(base.canvas, cut.canvas, input.packKind ?? "strip");
   return { ...base, canvas, packOk: true };
 }

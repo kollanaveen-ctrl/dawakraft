@@ -8,6 +8,7 @@ import type {
   PromoPhotoInput,
   WriteCopyData,
   WriteCopyInput,
+  ProductShotInput,
 } from "./types";
 
 /**
@@ -65,6 +66,12 @@ export async function requestCopy(input: WriteCopyInput, fetchFn: typeof fetch =
 /** POST /api/promo-photo. Never throws. "photo_unavailable" means: use a colour background. */
 export async function requestPhoto(input: PromoPhotoInput, fetchFn: typeof fetch = (...a) => fetch(...a)): Promise<PhotoResult> {
   const out = await post<PromoPhoto>("/api/promo-photo", input, fetchFn);
+  if (!out.ok) return out;
+  return { ok: true, photo: out.data, dataUrl: `data:${out.data.mediaType};base64,${out.data.data}`, meta: out.meta };
+}
+
+export async function requestProductShot(input: ProductShotInput, fetchFn: typeof fetch = (...a) => fetch(...a)): Promise<PhotoResult> {
+  const out = await post<PromoPhoto>("/api/product-shot", input, fetchFn);
   if (!out.ok) return out;
   return { ok: true, photo: out.data, dataUrl: `data:${out.data.mediaType};base64,${out.data.data}`, meta: out.meta };
 }

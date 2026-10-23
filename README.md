@@ -17,7 +17,7 @@ Photo of the box → straightened 3D product picture → AI reads the carton →
 
 | Feature | In plain words |
 |---|---|
-| **Product picture** | Photograph the front, the left end and the strip, bottle or tube. The app straightens the box by itself and shows it at an angle with the real strip in front, the way printed pharma catalogues do. Built only from your photos, never drawn by AI. |
+| **Product picture** | Original front, side and top photos are assembled locally. No generated packaging, recolouring or invented faces. Unsuitable images trigger a rejection popup; missing faces or facts are requested first. New studio flyers default to 1080 × 1920 WhatsApp Story. AI writes combination-specific draft copy and generates supporting imagery separately. |
 | **AI reads the carton** | Gemini (or Claude) reads brand, composition, pack, MRP, schedule, manufacturer and more. Every field shows which photo it came from and the exact printed words. The composition is always marked "check this". |
 | **You confirm** | Nothing goes out until you tick "I checked these details against the carton". |
 | **Compliance check** | Required fields, banned claim words (cure, guarantee, best, 100%…), a strength cross-check against the front of the pack, Schedule H / H1 / X warnings, and the trade-only line on every image. |
@@ -189,6 +189,6 @@ npm run build
 
 - **The licence holder stays responsible** for every circular. The compliance check catches common problems, not the full law.
 - **AI never replaces checking the carton.** Fields the AI was unsure about are marked **Check this**, and the composition is always flagged.
-- **AI never draws the product.** Pack pictures come only from your photos; AI photos show a made-up scene and are labelled.
+- **The studio now retouches product pictures with AI.** Brand and numeric strengths are checked again, but that check cannot guarantee exact artwork or fine print. Use sharp original pack photos and compare the generated image before approving it. Lifestyle scenes are separate and labelled as AI-generated.
 - **Schedule H, H1 and X** products carry a warning to share them only with doctors, chemists and the licensed trade.
 - **Not yet done:** real sign-in on the live site (the Cloudflare tokens, Resend key and R2 still need adding), end-to-end browser tests, and testing on real phones with real cartons. See the [Roadmap](docs/ROADMAP.md).

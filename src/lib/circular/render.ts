@@ -6,6 +6,8 @@ import { EMPTY_PROMO, type Promo } from "../promo";
 import type { Company, ProductFields } from "../types";
 import { drawCatalogCard } from "./catalogCard";
 import { PROMO_H, PROMO_W, drawPromo } from "./promo/render";
+import { drawStoryPromo } from "./promo/story";
+import { drawStudioPromo } from "./promo/studio";
 import { themeByKey, themeFromImage } from "./promo/theme";
 import {
   type Ctx,
@@ -37,7 +39,8 @@ export type CircularInput = {
 };
 
 /** The pixel size each layout is drawn at. */
-export function circularSize(template: TemplateKey): { width: number; height: number } {
+export function circularSize(template: TemplateKey, promo?: Promo): { width: number; height: number } {
+  if (template === "promo" && promo?.format === "story") return { width: 1080, height: 1920 };
   return template === "promo" ? { width: PROMO_W, height: PROMO_H } : { width: CIRCULAR_W, height: CIRCULAR_H };
 }
 
@@ -220,7 +223,7 @@ function drawClean(ctx: Ctx, { product: p, company: c, image, logo }: CircularIn
 export function renderCircular(canvas: HTMLCanvasElement, input: CircularInput): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  const size = circularSize(input.template);
+  const size = circularSize(input.template, input.promo);
   const scale = canvas.width / size.width;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.clearRect(0, 0, size.width, size.height);
@@ -229,7 +232,7 @@ export function renderCircular(canvas: HTMLCanvasElement, input: CircularInput):
   if (input.template === "promo") {
     const promo = input.promo ?? EMPTY_PROMO;
     const theme = themeByKey(promo.theme) ?? themeFromImage(input.image);
-    drawPromo(ctx, { ...input, promo, theme, photo: input.photo ?? null });
+    (promo.format === "story" ? drawStoryPromo : promo.layout ? drawStudioPromo : drawPromo)(ctx, { ...input, promo, theme, photo: input.photo ?? null });
   } else if (input.template === "catalog") drawCatalogCard(ctx, input, CIRCULAR_W, CIRCULAR_H);
   else if (input.template === "band") drawBand(ctx, input, brand);
   else if (input.template === "spotlight") drawSpotlight(ctx, input, brand);
@@ -240,7 +243,7 @@ export function renderCircular(canvas: HTMLCanvasElement, input: CircularInput):
 /** Full-size PNG of a circular, for download and sharing. */
 export function circularBlob(input: CircularInput): Promise<Blob | null> {
   const canvas = document.createElement("canvas");
-  const size = circularSize(input.template);
+  const size = circularSize(input.template, input.promo);
   canvas.width = size.width;
   canvas.height = size.height;
   renderCircular(canvas, input);

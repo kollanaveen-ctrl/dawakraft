@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useData } from "@/components/DataProvider";
 import { PromoAiTools } from "@/components/PromoAiTools";
 import { PromoEditor } from "@/components/PromoEditor";
+import { FlyerStudio } from "@/components/FlyerStudio";
 
 export default function PromoPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,5 +22,5 @@ export default function PromoPage() {
       </div>
     );
   }
-  return <PromoEditor key={product.id} product={product} aiTools={PromoAiTools} />;
+  return product.promo.layout ? <FlyerStudio key={product.id} product={product} /> : <PromoEditor key={product.id} product={product} aiTools={PromoAiTools} />;
 }

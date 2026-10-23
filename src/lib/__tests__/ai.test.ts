@@ -75,7 +75,7 @@ describe("mock provider", () => {
   it("returns a schema-valid sample reading, all low confidence, labelled as mock", async () => {
     const out = await mock.readBox({ images: [image("front")] as never });
     expect(BoxReadingSchema.safeParse(out.data).success).toBe(true);
-    expect(Object.values(out.data).every((f) => f.confidence === "low")).toBe(true);
+    expect(Object.values(out.data).every((f) => typeof f === "object" && f !== null && "confidence" in f && f.confidence === "low")).toBe(true);
     expect(out.meta).toMatchObject({ provider: "mock", model: null, mock: true });
     expect(out.meta.usage).toBeUndefined();
     expect(mock.paid).toBe(false);
