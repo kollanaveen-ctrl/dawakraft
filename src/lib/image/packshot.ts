@@ -271,7 +271,7 @@ async function buildCutoutPack(input: PackInput, shadow: boolean): Promise<PackR
  */
 export async function buildPackImage(input: PackInput): Promise<PackResult> {
   const isBox = !input.notABox && input.front instanceof File;
-  const withPack = isBox && Boolean(input.pack);
+  const withPack = Boolean(input.pack);
   const base = isBox ? await buildBoxPack(input, input.front as File, !withPack) : await buildCutoutPack(input, true);
   if (!withPack || !input.pack) return base;
   const img = await fileToImage(input.pack);

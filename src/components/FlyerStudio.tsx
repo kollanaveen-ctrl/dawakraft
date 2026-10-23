@@ -74,8 +74,9 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
   const sceneImage = scene?.image ?? (sceneRemoved ? null : storedScene);
   const issues = studioIssues(fields, confirmed, brand.name, strength);
   const missing = missingProductData(fields);
-  const photoIssues = pictures.length ? photoRequirements(views, mixedProducts, true) : initialProduct?.imagePath ? [] : ["Upload product photos to get started."];
-  if (pictures.length && views.some(v => v.view === "front" && v.kind === "box") && !views.some(v => v.view === "top" && v.usable && v.confidence === "high")) photoIssues.push("Add a sharp top-face photo so no carton artwork needs to be invented.");
+  const photoIssues = pictures.length ? photoRequirements(views, mixedProducts, false) : initialProduct?.imagePath ? [] : ["Upload product photos to get started."];
+
+  const prepareIssues = [...new Set([...photoIssues, ...missing.map(label => `Add the ${label}.`), ...issues])];
   const exportIssues = [...(!copyReady ? ["Generate the combination-specific copy before exporting."] : []), ...issues, ...flyerIssues(promo), ...(!artwork ? ["The product photo is not ready. Add a photo or wait for it to load."] : []), ...(!sceneImage ? ["Add or generate a lifestyle photo to finish this reference-style flyer."] : []), ...(!review ? ["Confirm the final preview before exporting."] : [])];
   const claims = promoClaims(promo);
   const input = { product: productFields, company: brand, template: "promo" as const, image: artwork, logo, promo, photo: sceneImage };
@@ -134,7 +135,7 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
       setViews(detected); setMixedProducts(Boolean(body.data.mixedProducts)); setAnalysed(true);
       factsChanged.current = true;
       setFields(merged.fields); setEvidence(merged.evidence); setLow({ ...merged.low, composition: true }); setStrength(merged.strengthOnFront ?? "");
-      const requests = [...photoRequirements(detected, Boolean(body.data.mixedProducts), true), ...missingProductData(merged.fields).map(label => `Please add ${label}.`)];
+      const requests = [...photoRequirements(detected, Boolean(body.data.mixedProducts), false), ...missingProductData(merged.fields).map(label => `Please add ${label}.`)];
       message(requests.length ? "Before creating the product image, please complete the requests below. You can add another photo or type missing details." : `${aiSummary(merged)} The photos and required details are ready to review.`);
     });
   }
@@ -149,17 +150,18 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
     const front = best("front");
     if (!front) return;
     const side = best("side"), top = best("top"), pack = best("pack");
+    const assembleFaces = front.kind === "box" && side?.kind === "box" && top?.kind === "box";
     await job("Preparing your original packaging without redrawing it…", async () => {
       const result = await buildPackImage({
         strict: true, front: pictures[front.index].file, side: side ? pictures[side.index].file : null,
         top: top ? pictures[top.index].file : null, pack: pack ? pictures[pack.index].file : null,
         packKind: (pack && ["strip", "bottle", "tube"].includes(pack.kind) ? pack.kind : "strip") as PackKind,
         rots: { ...NO_ROTATION, front: Number(front.rotation), side: Number(side?.rotation ?? 0), top: Number(top?.rotation ?? 0), pack: Number(pack?.rotation ?? 0) },
-        removeBg: true, tol: 46, threeD: front.kind === "box", notABox: front.kind !== "box", cropped: false,
+        removeBg: true, tol: 46, threeD: assembleFaces, notABox: !assembleFaces, cropped: false,
       });
       if (!result.ok || result.unfound?.length || result.packOk === false) throw new Error(UNSUPPORTED_PHOTO_MESSAGE);
       setCut(result.canvas);
-      message("Product image ready. Check the original artwork and edges before continuing to the flyer.");
+      message(assembleFaces ? "Product image ready from your photographed faces. Check its edges before continuing." : "Original photo prepared. Its photographed shape and artwork are preserved; no missing sides were invented.");
     });
   }
   async function openDesign() {
@@ -300,9 +302,9 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
       <div className="studio-controls">
         <fieldset disabled={Boolean(busy)}>
         {step === 0 && <>
-          <div className="studio-section-title"><span>01</span><div><h2>All your product photos. One upload.</h2><p>Add the front, box end, label and strip together. AI sorts the views for you.</p></div></div>
+          <div className="studio-section-title"><span>01</span><div><h2>All your product photos. One upload.</h2><p>Start with one clear product photo. Add a readable label photo only if details are missing.</p></div></div>
           {photoTray()}
-          <p className="studio-tip">Use up to {MAX_AI_IMAGES} clear photos of the same product. Include the front, another angle if available, and a readable composition/MRP label. We preserve the original artwork. For a 3D carton, include sharp front, side and top photos. Unsuitable photos are rejected.</p>
+          <p className="studio-tip">One sharp photo is enough to prepare the product image. Keep the whole pack visible against a plain contrasting background. Add up to {MAX_AI_IMAGES} photos if a label is hard to read. Side and top photos are optional; we never invent missing artwork.</p>
           <button type="button" className="btn primary studio-main-action" disabled={!pictures.length} onClick={() => void analysePhotos()}>Check all photos with AI →</button>
           <button type="button" className="btn ghost studio-main-action" disabled={!pictures.length && !initialProduct} onClick={() => { setStep(1); message("Enter the printed details and identify the photo views below before creating the product image."); }}>Enter details manually</button>
         </>}
@@ -315,7 +317,7 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
           <details className="studio-details"><summary>More product details</summary><div className="studio-fields">{field("schedule", "Schedule on the pack", 10)}{field("category", "Product category", 60)}{field("storage", "Storage instructions", 200)}{field("marketedBy", "Marketed by", 200)}</div></details>
 
           <label className="studio-checkbox"><input type="checkbox" checked={confirmed} onChange={e => { setConfirmed(e.target.checked); change(); }} />I checked the name, composition, strength, price and pack size against the carton.</label>
-          {confirmed && issues.length > 0 && <ul className="studio-issues">{issues.map(issue => <li key={issue}>{issue}</li>)}</ul>}
+          {pictures.length > 0 && <div className={`studio-requests ${prepareIssues.length ? "" : "studio-ready"}`} role="status" aria-live="polite"><h3>{prepareIssues.length ? "Before the product image can be prepared" : "Ready to prepare"}</h3>{prepareIssues.length ? <ul>{prepareIssues.map(issue => <li key={issue}>{issue}</li>)}</ul> : <p>We will preserve your original product photo. Side and top views are optional.</p>}</div>}
           {pictures.length > 0 && <button type="button" className="btn primary studio-main-action" disabled={issues.length > 0 || missing.length > 0 || photoIssues.length > 0} onClick={() => void createProductImage()}>{cut ? "Rebuild product image" : "Prepare original product image"}</button>}
           {artwork && <button type="button" className="btn primary studio-main-action" disabled={issues.length > 0 || missing.length > 0 || photoIssues.length > 0} onClick={openDesign}>Use this image & create flyer →</button>}
           <button type="button" className="btn ghost studio-main-action" onClick={() => setStep(0)}>← Back to photos</button>

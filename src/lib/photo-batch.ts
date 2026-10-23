@@ -16,7 +16,7 @@ export function usableViews(views: PhotoView[] | undefined, count: number): Phot
 export function photoRequirements(views: PhotoView[], mixed: boolean, threeD = true): string[] {
   if (mixed) return ["These photos appear to show different products or strengths. Keep photos of one product only, then analyse again."];
   const front = views.find(v => v.view === "front" && v.confidence === "high" && v.usable);
-  if (!front) return ["Add a clear photo of the product front with the brand facing the camera, or identify its view below."];
+  if (!front) return ["Add a clear photo of the product front with the brand facing the camera, then check photos with AI."];
   if (threeD && front.kind === "box" && !views.some(v => v.view === "side" && v.kind === "box" && v.confidence === "high" && v.usable)) return ["For a 3D box image, add a clear photo of the narrow box end. A rear details panel cannot be used as the box end."];
   return [];
 }

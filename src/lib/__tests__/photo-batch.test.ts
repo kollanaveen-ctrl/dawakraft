@@ -26,6 +26,11 @@ describe("batch photo checks before 3D generation", () => {
     expect(photoRequirements([view(0, "front", "bottle")], false)).toEqual([]);
     expect(photoRequirements([view(0, "front")], false, false)).toEqual([]);
   });
+  it("allows one verified carton photo without demanding invented sides", () => {
+    expect(photoRequirements([view(0, "front")], false, false)).toEqual([]);
+    expect(photoRequirements([view(0, "front"), view(1, "back")], false, false)).toEqual([]);
+    expect(photoRequirements([{ ...view(0, "front"), usable: false }], false, false).join()).toContain("front");
+  });
   it("blocks mixed products even when all views exist", () => {
     expect(photoRequirements([view(0, "front"), view(1, "side")], true).join()).toContain("different products");
   });
