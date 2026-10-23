@@ -50,7 +50,9 @@
     ".next-verify-workflow/types/**/*.ts",
     ".next-verify-workflow/dev/types/**/*.ts",
     ".next-verify-demo/types/**/*.ts",
-    ".next-verify-demo/dev/types/**/*.ts"
+    ".next-verify-demo/dev/types/**/*.ts",
+    ".next-verify-required/types/**/*.ts",
+    ".next-verify-required/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

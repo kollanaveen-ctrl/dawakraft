@@ -109,3 +109,9 @@ main.wrap:has(.studio) { max-width: 1480px; }
 .studio dialog { max-width: min(90vw, 520px); padding: 28px; border: 1px solid #c8d5d0; border-radius: 20px; color: #143a39; }
 .studio dialog::backdrop { background: #09232199; }
 .studio dialog p { margin: 18px 0; }
+
+.studio-required { color: #b42332; font-weight: 800; }
+.studio-required-legend { font-size: 12px; color: #58675f; margin: 18px 0 12px; line-height: 1.5; }
+.studio .studio-field-missing input:not([type=checkbox]):not([type=file]), .studio .studio-field-missing textarea, .studio .studio-field-missing select { border: 2px solid #b42332; background: #fff4f2; }
+.studio .studio-field-missing input:not([type=checkbox]):not([type=file]):focus, .studio .studio-field-missing textarea:focus, .studio .studio-field-missing select:focus { outline: 2px solid #b4233244; outline-offset: 2px; }
+.studio .field .studio-required-error { color: #a51c2b; font-size: 12px; font-weight: 600; }

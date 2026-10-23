@@ -266,10 +266,15 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
     });
   }
   function field(key: FieldKey, label: string, max: number) {
-    return <label className={`field ${key === "composition" || key === "uses" ? "studio-span" : ""}`} key={key}>
-      <span>{label}{low[key] && <small className="studio-check">Check this</small>}</span>
-      {SELECTS[key] ? <select value={fields[key]} onChange={e => updateField(key, e.target.value)}><option value="">Choose…</option>{SELECTS[key]!.map(v => <option key={v}>{v}</option>)}</select> : key === "composition" || key === "uses" ? <textarea rows={3} maxLength={max} value={fields[key]} onChange={e => updateField(key, e.target.value)} /> : <input value={fields[key]} maxLength={max} inputMode={key === "mrp" ? "decimal" : undefined} onChange={e => updateField(key, e.target.value)} />}
-      {evidence[key] && <small className="muted">{evidenceLine(evidence[key])}</small>}
+    const required = BASIC.some(([k]) => k === key);
+    const invalid = required && (key === "mrp" ? !Number.isFinite(Number(fields.mrp)) || Number(fields.mrp) <= 0 || Number(fields.mrp) >= 100_000_000 : !fields[key].trim());
+    const hint = invalid ? key === "mrp" ? "Enter a valid MRP greater than ₹0." : `${label} is required.` : "";
+    const a11y = { required, "aria-required": required || undefined, "aria-invalid": invalid || undefined, "aria-label": label, "aria-describedby": [hint ? `required-${key}` : "", evidence[key] ? `evidence-${key}` : ""].filter(Boolean).join(" ") || undefined };
+    return <label className={`field ${invalid ? "studio-field-missing" : ""} ${key === "composition" || key === "uses" ? "studio-span" : ""}`} key={key}>
+      <span>{label}{required && <b className="studio-required" aria-hidden="true"> *</b>}{low[key] && <small className="studio-check">Check this</small>}</span>
+      {SELECTS[key] ? <select {...a11y} value={fields[key]} onChange={e => updateField(key, e.target.value)}><option value="">Choose…</option>{SELECTS[key]!.map(v => <option key={v}>{v}</option>)}</select> : key === "composition" || key === "uses" ? <textarea {...a11y} rows={3} maxLength={max} value={fields[key]} onChange={e => updateField(key, e.target.value)} /> : <input {...a11y} value={fields[key]} maxLength={max} inputMode={key === "mrp" ? "decimal" : undefined} onChange={e => updateField(key, e.target.value)} />}
+      {hint && <small id={`required-${key}`} className="studio-required-error">{hint}</small>}
+      {evidence[key] && <small id={`evidence-${key}`} className="muted">{evidenceLine(evidence[key])}</small>}
     </label>;
   }
 
@@ -313,10 +318,11 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
           {(missing.length > 0 || photoIssues.length > 0 || !brand.name.trim()) && <div className="studio-requests" role="status"><h3>Here’s what we still need</h3><ul>{photoIssues.map(issue => <li key={issue}>{issue}</li>)}{missing.map(label => <li key={label}>Please add the {label} below, or upload a clearer label photo.</li>)}{!brand.name.trim() && <li>Add your company name below.</li>}</ul></div>}
           {pictures.length > 0 && photoTray()}
           {pictures.length > 0 && <button type="button" className="btn studio-main-action" onClick={() => void analysePhotos()}>{analysed ? "Read photos again" : "Check photos with AI"}</button>}
-          <div className="studio-fields">{BASIC.map(([key, label, max]) => field(key, label, max))}{field("uses", "Approved indications (optional)", 140)}<label className="field studio-span"><span>Your company name</span><input maxLength={120} value={brand.name} onChange={e => { setCompanyName(e.target.value); change(); }} /></label></div>
+          <p className="studio-required-legend"><span className="studio-required" aria-hidden="true">*</span> Required to prepare the product image. Highlighted fields still need a value.</p>
+          <div className="studio-fields">{BASIC.map(([key, label, max]) => field(key, label, max))}{field("uses", "Approved indications (optional)", 140)}<label className={`field studio-span ${!brand.name.trim() ? "studio-field-missing" : ""}`}><span>Your company name<b className="studio-required" aria-hidden="true"> *</b></span><input required aria-required="true" aria-label="Your company name" aria-invalid={!brand.name.trim() || undefined} aria-describedby={!brand.name.trim() ? "required-company" : undefined} maxLength={120} value={brand.name} onChange={e => { setCompanyName(e.target.value); change(); }} />{!brand.name.trim() && <small id="required-company" className="studio-required-error">Your company name is required.</small>}</label></div>
           <details className="studio-details"><summary>More product details</summary><div className="studio-fields">{field("schedule", "Schedule on the pack", 10)}{field("category", "Product category", 60)}{field("storage", "Storage instructions", 200)}{field("marketedBy", "Marketed by", 200)}</div></details>
 
-          <label className="studio-checkbox"><input type="checkbox" checked={confirmed} onChange={e => { setConfirmed(e.target.checked); change(); }} />I checked the name, composition, strength, price and pack size against the carton.</label>
+          <label className="studio-checkbox"><input type="checkbox" required aria-required="true" checked={confirmed} onChange={e => { setConfirmed(e.target.checked); change(); }} />I checked the name, composition, strength, price and pack size against the carton.<b className="studio-required" aria-hidden="true"> *</b></label>
           {pictures.length > 0 && <div className={`studio-requests ${prepareIssues.length ? "" : "studio-ready"}`} role="status" aria-live="polite"><h3>{prepareIssues.length ? "Before the product image can be prepared" : "Ready to prepare"}</h3>{prepareIssues.length ? <ul>{prepareIssues.map(issue => <li key={issue}>{issue}</li>)}</ul> : <p>We will preserve your original product photo. Side and top views are optional.</p>}</div>}
           {pictures.length > 0 && <button type="button" className="btn primary studio-main-action" disabled={issues.length > 0 || missing.length > 0 || photoIssues.length > 0} onClick={() => void createProductImage()}>{cut ? "Rebuild product image" : "Prepare original product image"}</button>}
           {artwork && <button type="button" className="btn primary studio-main-action" disabled={issues.length > 0 || missing.length > 0 || photoIssues.length > 0} onClick={openDesign}>Use this image & create flyer →</button>}
