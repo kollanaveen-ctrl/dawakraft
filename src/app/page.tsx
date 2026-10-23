@@ -12,9 +12,9 @@ export const metadata: Metadata = {
 };
 
 const STEPS = [
-  ["Capture the pack", "Photograph the front, side panels and top. Straighten each panel with a few corner adjustments."],
+  ["Upload your product photos", "Start with one sharp front photo on a plain background. Add a details photo if the label is hard to read."],
   ["Read. Review. Confirm.", "AI reads the printed label and shows its source. Check the details against the carton before continuing."],
-  ["Make it your company's", "Choose a circular layout. Your company name, logo and contact details bring the range together."],
+  ["Create a Story for your product", "Keep your original packaging. AI drafts composition-specific copy and creates a matching supporting visual for your review."],
   ["Keep it within reach", "Save to your catalog, find by brand or composition, and export a circular or catalogue PDF to share."],
 ];
 

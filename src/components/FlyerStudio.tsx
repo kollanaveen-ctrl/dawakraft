@@ -22,6 +22,7 @@ import { flyerIssues, initialFlyer, STUDIO_AI_ERRORS, studioIssues } from "@/lib
 import type { DraftFields, Product } from "@/lib/types";
 import { missingProductData, photoRequirements, usableViews, VIEW_LABELS, type PhotoView } from "@/lib/photo-batch";
 import { CircularCanvas } from "./CircularCanvas";
+import { StudioProgress } from "./StudioProgress";
 import { primeMediaImage, useData, useMediaImage } from "./DataProvider";
 import "@/styles/studio.css";
 
@@ -177,6 +178,7 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
         setPromo(next); factsChanged.current = false; setCopyReady(true);
       }
       if (!sceneImage || next !== promo) {
+        setBusy("Creating a supporting image matched to your product…");
         const result = await requestPhoto(photoRequest(next));
         if (!result.ok) throw new Error(STUDIO_AI_ERRORS[result.error] || "The supporting image could not be generated. Retry Generate photo.");
         const blob = await photoBlob(await (await fetch(result.dataUrl)).blob());
@@ -303,6 +305,7 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
     <header className="studio-heading"><div><p className="studio-eyebrow">DAWAKRAFT / FLYER STUDIO</p><h1 id="studio-title">Your product. Beautifully presented.</h1><p>Start with a pack photo. Leave with a flyer you’re proud to share.</p></div><Link href="/catalog" className="btn ghost">My catalog ↗</Link></header>
     <ol className="studio-steps">{["Add photos", "Check details", "Create your flyer"].map((label, i) => <li key={label} aria-current={step === i ? "step" : undefined}><span>{step > i ? "✓" : `0${i + 1}`}</span>{label}</li>)}</ol>
     {loadError && <p role="alert" className="studio-message error">{loadError}</p>}
+    {busy && <StudioProgress label={busy} />}
     <div className="studio-workspace">
       <div className="studio-controls">
         <fieldset disabled={Boolean(busy)}>
@@ -346,7 +349,7 @@ export function FlyerStudio({ product: initialProduct }: { product?: Product }) 
           <button type="button" className="btn ghost studio-main-action" onClick={() => { setStep(1); change(); }}>← Edit product details</button>
         </>}
         </fieldset>
-        {status && <p className={`studio-message ${error ? "error" : ""}`} role={error ? "alert" : "status"}>{busy && <span className="studio-spinner" aria-hidden="true" />}{status}</p>}
+        {status && !busy && <p className={`studio-message ${error ? "error" : ""}`} role={error ? "alert" : "status"}>{status}</p>}
       </div>
       <aside className="studio-preview-area" aria-label="Live preview">
         <div className="studio-preview-bar"><span>{step === 2 ? "YOUR FLYER / LIVE PREVIEW" : "YOUR PRODUCT / PREVIEW"}</span><span>{step === 2 ? promo.format === "story" ? "1080 × 1920 · 9:16" : "1600 × 1228" : "Original packaging"}</span></div>

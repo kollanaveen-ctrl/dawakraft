@@ -52,7 +52,9 @@
     ".next-verify-demo/types/**/*.ts",
     ".next-verify-demo/dev/types/**/*.ts",
     ".next-verify-required/types/**/*.ts",
-    ".next-verify-required/dev/types/**/*.ts"
+    ".next-verify-required/dev/types/**/*.ts",
+    ".next-verify-webpack-progress/types/**/*.ts",
+    ".next-verify-webpack-progress/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

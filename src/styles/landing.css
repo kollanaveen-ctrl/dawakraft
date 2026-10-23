@@ -69,3 +69,29 @@
 .workflow-showcase figcaption p { color: #b8c4ba; font-size: 10px; margin: 5px 0 7px; line-height: 1.5; }
 .workflow-showcase figcaption a { font-size: 11px; color: #73d3bb; text-underline-offset: 3px; }
 @media (max-width: 600px) { .studio-preview { padding: 20px 16px; } .workflow-output { max-width: 300px; } }
+
+.landing h1, .landing h2, .landing h3 { text-wrap: balance; }
+.landing p { text-wrap: pretty; }
+.landing .hero-copy, .landing .studio-preview, .landing .feature-list article { min-width: 0; }
+.landing a, .landing-bar a { transition: background-color .2s ease, color .2s ease, box-shadow .2s ease; }
+.landing a:focus-visible, .landing-bar a:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; }
+.landing .btn, .landing-bar .tab, .landing .text-link { min-height: 44px; }
+@media (hover: hover) { .landing .btn:hover { box-shadow: 0 5px 18px #15563f25; } .workflow-output:hover { transform: translateY(-5px); } }
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .landing .hero-copy { animation: landing-enter .65s ease-out both; }
+  .landing .studio-preview { animation: landing-enter .8s .12s ease-out both; }
+  .workflow-output { transition: transform .3s ease; }
+  .landing .preview-status { animation: landing-pulse 2.4s ease-in-out infinite; }
+}
+@keyframes landing-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes landing-pulse { 50% { opacity: .45; } }
+@media (max-width: 720px) {
+  .landing-bar .wrap { justify-content: space-between; gap: 8px; }
+  .landing-bar .tab.primary { font-size: 13px; padding-inline: 12px; }
+  .hero-actions { gap: 16px; align-items: flex-start; }
+  .landing .hero-note, .landing .hero-index { font-size: 12px; line-height: 1.6; }
+  .workflow-showcase figcaption p, .workflow-showcase figcaption a { font-size: 12px; }
+  .landing .hero h1 { line-height: 1.08; }
+  .landing .section-intro > p:last-child, .landing .steps-list p, .landing .feature-list p, .landing .faq p { font-size: 15px; }
+}

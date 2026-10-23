@@ -115,3 +115,25 @@ main.wrap:has(.studio) { max-width: 1480px; }
 .studio .studio-field-missing input:not([type=checkbox]):not([type=file]), .studio .studio-field-missing textarea, .studio .studio-field-missing select { border: 2px solid #b42332; background: #fff4f2; }
 .studio .studio-field-missing input:not([type=checkbox]):not([type=file]):focus, .studio .studio-field-missing textarea:focus, .studio .studio-field-missing select:focus { outline: 2px solid #b4233244; outline-offset: 2px; }
 .studio .field .studio-required-error { color: #a51c2b; font-size: 12px; font-weight: 600; }
+
+/* Visible from any scroll position, without covering the working preview. */
+.studio-progress { position: fixed; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 20; width: min(620px, calc(100% - 32px)); display: flex; align-items: flex-start; gap: 18px; padding: 23px; border: 1px solid #478b73; border-radius: 18px; background: #123f32; color: #fff; box-shadow: 0 16px 55px #092a3240; }
+.studio-progress-orbit { flex: 0 0 44px; height: 44px; display: grid; place-items: center; border: 1px solid #7cc5ab; border-radius: 50%; color: #adedd5; font-size: 27px; }
+.studio-progress-copy { min-width: 0; flex: 1; }
+.studio-progress-eyebrow { display: block; color: #b9e2d2; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 7px; }
+.studio-progress strong { display: block; font-size: 18px; line-height: 1.4; }
+.studio-progress p { color: #d2e8de; font-size: 13px; line-height: 1.6; margin: 8px 0 14px; }
+.studio-progress small { display: block; color: #c0ddcf; font-size: 11px; margin-top: 9px; font-variant-numeric: tabular-nums; }
+.studio-progress-track { height: 4px; overflow: hidden; border-radius: 4px; background: #ffffff25; }
+.studio-progress-track i { display: block; height: 100%; width: 35%; background: #8ce2bc; }
+@media (prefers-reduced-motion: no-preference) { .studio-progress-orbit { animation: studio-spin 5s linear infinite; } .studio-progress-track i { animation: studio-travel 1.8s ease-in-out infinite alternate; } }
+@keyframes studio-travel { from { transform: translateX(-100%); } to { transform: translateX(285%); } }
+@media (max-width: 700px) {
+  .studio { padding-bottom: 240px; }
+  .studio input:not([type=checkbox]):not([type=file]), .studio textarea, .studio select { font-size: 16px; }
+  .studio .field > span, .studio-section-title p, .studio .field small { font-size: 12px; line-height: 1.5; }
+  .studio-progress { padding: 17px; gap: 12px; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .studio-progress strong { font-size: 16px; }
+  .studio-progress-orbit { flex-basis: 34px; height: 34px; font-size: 22px; }
+  .studio-controls { padding: 20px 16px; }
+}
